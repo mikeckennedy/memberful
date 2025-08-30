@@ -2,10 +2,34 @@
 
 This document contains the JSON structures for all Memberful webhook events as documented at [Memberful Webhook Event Reference](https://memberful.com/help/custom-development-and-api/webhook-event-reference/).
 
+## Pydantic Models
+
+Each webhook event has a corresponding Pydantic model in `src/memberful/webhook_models.py` for type-safe parsing and validation. Import these models from:
+
+```python
+from memberful.webhook_models import (
+    MemberSignupEvent,
+    MemberUpdatedEvent,
+    SubscriptionCreatedEvent,
+    SubscriptionUpdatedEvent,
+    OrderCompletedEvent,
+    OrderSuspendedEvent,
+    SubscriptionPlanCreatedEvent,
+    SubscriptionPlanUpdatedEvent,
+    SubscriptionPlanDeletedEvent,
+    DownloadCreatedEvent,
+    DownloadUpdatedEvent,
+    DownloadDeletedEvent,
+    WebhookEvent,  # Union of all event types
+)
+```
+
 ## Member Events
 
 ### member_signup
 Triggered when a new member account is created.
+
+**Pydantic Model:** `MemberSignupEvent`
 
 ```json
 {
@@ -48,6 +72,8 @@ Triggered when a new member account is created.
 
 ### member_updated  
 Triggered when a member is updated.
+
+**Pydantic Model:** `MemberUpdatedEvent`
 
 ```json
 {
@@ -116,6 +142,8 @@ Triggered when a member is updated.
 ### subscription.created
 Triggered when a new subscription is created.
 
+**Pydantic Model:** `SubscriptionCreatedEvent`
+
 ```json
 {
   "event": "subscription.created",
@@ -180,6 +208,8 @@ Triggered when a new subscription is created.
 
 ### subscription.updated
 Triggered when a subscription is updated (including upgrades and downgrades).
+
+**Pydantic Model:** `SubscriptionUpdatedEvent`
 
 ```json
 {
@@ -253,6 +283,8 @@ Triggered when a subscription is updated (including upgrades and downgrades).
 ### order.completed
 Triggered when a suspended order is marked completed by staff.
 
+**Pydantic Model:** `OrderCompletedEvent`
+
 ```json
 {
   "event": "order.completed",
@@ -324,6 +356,8 @@ Triggered when a suspended order is marked completed by staff.
 
 ### order.suspended  
 Triggered when an order is suspended by staff.
+
+**Pydantic Model:** `OrderSuspendedEvent`
 
 ```json
 {
@@ -399,6 +433,8 @@ Triggered when an order is suspended by staff.
 ### subscription_plan.created
 Triggered when a new plan is created.
 
+**Pydantic Model:** `SubscriptionPlanCreatedEvent`
+
 ```json
 {
   "event": "subscription_plan.created",
@@ -418,6 +454,8 @@ Triggered when a new plan is created.
 ### subscription_plan.updated
 Triggered when a plan is updated.
 
+**Pydantic Model:** `SubscriptionPlanUpdatedEvent`
+
 ```json
 {
   "event": "subscription_plan.updated",
@@ -436,6 +474,8 @@ Triggered when a plan is updated.
 
 ### subscription_plan.deleted
 Triggered when a plan is deleted.
+
+**Pydantic Model:** `SubscriptionPlanDeletedEvent`
 
 ```json
 {
@@ -458,6 +498,8 @@ Triggered when a plan is deleted.
 ### download.created
 Triggered when a download is created.
 
+**Pydantic Model:** `DownloadCreatedEvent`
+
 ```json
 {
   "event": "download.created",
@@ -473,6 +515,8 @@ Triggered when a download is created.
 
 ### download.updated
 Triggered when a download is updated.
+
+**Pydantic Model:** `DownloadUpdatedEvent`
 
 ```json
 {
@@ -490,6 +534,8 @@ Triggered when a download is updated.
 ### download.deleted
 Triggered when a download is deleted.
 
+**Pydantic Model:** `DownloadDeletedEvent`
+
 ```json
 {
   "event": "download.deleted",
@@ -503,14 +549,42 @@ Triggered when a download is deleted.
 }
 ```
 
+## Usage Examples
+
+### Basic Parsing
+```python
+from memberful.webhook_models import MemberSignupEvent
+import json
+
+# Parse a member signup webhook
+payload = request.get_data(as_text=True)
+data = json.loads(payload)
+event = MemberSignupEvent(**data)
+
+print(f"New member: {event.member.email}")
+```
+
+### Type-Safe Event Handling
+```python
+from memberful.webhook_models import WebhookEvent, MemberSignupEvent, SubscriptionCreatedEvent
+
+def handle_webhook(event: WebhookEvent):
+    if isinstance(event, MemberSignupEvent):
+        print(f"Welcome {event.member.email}!")
+    elif isinstance(event, SubscriptionCreatedEvent):
+        print(f"New subscription for {event.member.email}")
+```
+
 ## Notes
 
 - **Event Naming**: Note the inconsistent naming convention - member events use underscore format (`member_signup`), while subscription events use dot format (`subscription.created`), and plan events use underscore format (`subscription_plan.created`).
 
 - **Upgrades/Downgrades**: Both upgrades and downgrades trigger the `subscription.updated` webhook. Upgrades include a "changed" section with before/after values. Downgrades may have an empty "changed" section if they occur on the next renewal date.
 
-- **Optional Fields**: Many fields can be null or missing depending on the member's signup method and available data.
+- **Optional Fields**: Many fields can be null or missing depending on the member's signup method and available data. All Pydantic models handle these gracefully with `Optional` types.
 
 - **Timestamps**: All timestamps are Unix timestamps (seconds since epoch).
 
 - **Prices**: All prices are in the smallest currency unit (e.g., cents for USD).
+
+- **Validation**: All Pydantic models include field validation and will raise `ValidationError` if the webhook payload doesn't match the expected structure.
