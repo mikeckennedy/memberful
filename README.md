@@ -10,6 +10,7 @@ A modern, type-safe Python SDK for integrating with [Memberful](https://memberfu
 
 - **🔒 Type Safety**: Full Pydantic model coverage for all API responses and webhook events
 - **🚀 Async First**: Built on `httpx` for high-performance async operations
+- **🔄 Resilient**: Smart retry logic with exponential backoff handles network hiccups automatically
 - **📝 Auto-Complete Heaven**: Comprehensive type hints mean your IDE knows exactly what's available
 - **🎯 Zero Guesswork**: No more digging through API docs to figure out response formats
 - **🪝 Webhook Support**: Parse and validate webhook events with confidence
@@ -104,6 +105,7 @@ Check out the [examples directory](examples/) for ready-to-run code:
 - ✅ Fetch members (individual, paginated, or all)
 - ✅ Retrieve subscriptions with full plan details
 - ✅ Automatic pagination handling
+- ✅ **Smart retry logic** with exponential backoff (3 attempts, handles network errors)
 - ✅ Configurable timeouts and retries
 - ✅ Type-safe responses with Pydantic models
 - ✅ Comprehensive error handling
