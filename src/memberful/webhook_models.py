@@ -9,7 +9,18 @@ webhook data variations.
 from enum import Enum
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class WebhookBaseModel(BaseModel):
+    """Base class for all webhook-related models with extra data handling."""
+
+    model_config = ConfigDict(extra='allow')
+
+    @property
+    def extras(self) -> dict[str, Any]:
+        """Read-only access to any extra fields not defined in the model."""
+        return getattr(self, '__pydantic_extra__', {})
 
 
 class SignupMethod(str, Enum):
@@ -49,7 +60,7 @@ class IntervalUnit(str, Enum):
     DAY = 'day'
 
 
-class Address(BaseModel):
+class Address(WebhookBaseModel):
     """Member address information."""
 
     street: Optional[str] = None
@@ -59,7 +70,7 @@ class Address(BaseModel):
     country: Optional[str] = None
 
 
-class CreditCard(BaseModel):
+class CreditCard(WebhookBaseModel):
     """Credit card information."""
 
     exp_month: Optional[int] = None
@@ -68,7 +79,7 @@ class CreditCard(BaseModel):
     brand: Optional[str] = None
 
 
-class TrackingParams(BaseModel):
+class TrackingParams(WebhookBaseModel):
     """UTM tracking parameters."""
 
     utm_term: Optional[str] = None
@@ -78,7 +89,7 @@ class TrackingParams(BaseModel):
     utm_content: Optional[str] = None
 
 
-class SubscriptionPlan(BaseModel):
+class SubscriptionPlan(WebhookBaseModel):
     """Subscription plan details."""
 
     id: int
@@ -91,7 +102,7 @@ class SubscriptionPlan(BaseModel):
     for_sale: bool = True
 
 
-class MemberSubscription(BaseModel):
+class MemberSubscription(WebhookBaseModel):
     """Member subscription details."""
 
     active: bool
@@ -105,7 +116,7 @@ class MemberSubscription(BaseModel):
     trial_start_at: Optional[int] = None  # Unix timestamp
 
 
-class Product(BaseModel):
+class Product(WebhookBaseModel):
     """Download/product information."""
 
     id: int
@@ -115,7 +126,7 @@ class Product(BaseModel):
     for_sale: bool = True
 
 
-class Member(BaseModel):
+class Member(WebhookBaseModel):
     """Member information."""
 
     id: int
@@ -140,7 +151,7 @@ class Member(BaseModel):
     custom_field: Optional[Any] = None
 
 
-class SubscriptionChanges(BaseModel):
+class SubscriptionChanges(WebhookBaseModel):
     """Changes made to a subscription (for subscription.updated events)."""
 
     plan_id: Optional[list[int]] = None  # [old_value, new_value]
@@ -150,7 +161,7 @@ class SubscriptionChanges(BaseModel):
     price: Optional[list[int]] = None
 
 
-class Order(BaseModel):
+class Order(WebhookBaseModel):
     """Order information."""
 
     uuid: str
@@ -169,14 +180,14 @@ class Order(BaseModel):
 # Webhook Event Models
 
 
-class MemberSignupEvent(BaseModel):
+class MemberSignupEvent(WebhookBaseModel):
     """member_signup webhook event."""
 
     event: str = Field(..., pattern=r'^member_signup$')
     member: Member
 
 
-class MemberUpdatedEvent(BaseModel):
+class MemberUpdatedEvent(WebhookBaseModel):
     """member_updated webhook event."""
 
     event: str = Field(..., pattern=r'^member_updated$')
@@ -185,7 +196,7 @@ class MemberUpdatedEvent(BaseModel):
     subscriptions: list[MemberSubscription] = Field(default_factory=list)
 
 
-class SubscriptionCreatedEvent(BaseModel):
+class SubscriptionCreatedEvent(WebhookBaseModel):
     """subscription.created webhook event."""
 
     event: str = Field(..., pattern=r'^subscription\.created$')
@@ -194,7 +205,7 @@ class SubscriptionCreatedEvent(BaseModel):
     subscriptions: list[MemberSubscription] = Field(default_factory=list)
 
 
-class SubscriptionUpdatedEvent(BaseModel):
+class SubscriptionUpdatedEvent(WebhookBaseModel):
     """subscription.updated webhook event."""
 
     event: str = Field(..., pattern=r'^subscription\.updated$')
@@ -204,56 +215,56 @@ class SubscriptionUpdatedEvent(BaseModel):
     changed: Optional[SubscriptionChanges] = None
 
 
-class OrderCompletedEvent(BaseModel):
+class OrderCompletedEvent(WebhookBaseModel):
     """order.completed webhook event."""
 
     event: str = Field(..., pattern=r'^order\.completed$')
     order: Order
 
 
-class OrderSuspendedEvent(BaseModel):
+class OrderSuspendedEvent(WebhookBaseModel):
     """order.suspended webhook event."""
 
     event: str = Field(..., pattern=r'^order\.suspended$')
     order: Order
 
 
-class SubscriptionPlanCreatedEvent(BaseModel):
+class SubscriptionPlanCreatedEvent(WebhookBaseModel):
     """subscription_plan.created webhook event."""
 
     event: str = Field(..., pattern=r'^subscription_plan\.created$')
     subscription: SubscriptionPlan
 
 
-class SubscriptionPlanUpdatedEvent(BaseModel):
+class SubscriptionPlanUpdatedEvent(WebhookBaseModel):
     """subscription_plan.updated webhook event."""
 
     event: str = Field(..., pattern=r'^subscription_plan\.updated$')
     subscription: SubscriptionPlan
 
 
-class SubscriptionPlanDeletedEvent(BaseModel):
+class SubscriptionPlanDeletedEvent(WebhookBaseModel):
     """subscription_plan.deleted webhook event."""
 
     event: str = Field(..., pattern=r'^subscription_plan\.deleted$')
     subscription: SubscriptionPlan
 
 
-class DownloadCreatedEvent(BaseModel):
+class DownloadCreatedEvent(WebhookBaseModel):
     """download.created webhook event."""
 
     event: str = Field(..., pattern=r'^download\.created$')
     product: Product
 
 
-class DownloadUpdatedEvent(BaseModel):
+class DownloadUpdatedEvent(WebhookBaseModel):
     """download.updated webhook event."""
 
     event: str = Field(..., pattern=r'^download\.updated$')
     product: Product
 
 
-class DownloadDeletedEvent(BaseModel):
+class DownloadDeletedEvent(WebhookBaseModel):
     """download.deleted webhook event."""
 
     event: str = Field(..., pattern=r'^download\.deleted$')

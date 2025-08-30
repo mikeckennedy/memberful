@@ -298,3 +298,112 @@ class TestJsonCompatibility:
         assert event.subscription.name == 'Sample plan'
         assert event.subscription.price == 1000
         assert event.subscription.renewal_period == 'monthly'
+
+
+class TestExtraDataHandling:
+    """Test that models can handle extra data without crashes."""
+
+    def test_member_with_extra_data(self):
+        """Test Member model accepts and stores extra fields."""
+        member_data = {
+            'id': 123,
+            'email': 'test@example.com',
+            'created_at': 1640995200,
+            # Extra fields that might come from webhook
+            'custom_metadata': {'source': 'referral', 'campaign': 'winter2023'},
+            'internal_notes': 'VIP customer',
+            'analytics_id': 'abc-123-def',
+        }
+
+        member = Member(**member_data)
+
+        # Verify required fields work
+        assert member.id == 123
+        assert member.email == 'test@example.com'
+        assert member.created_at == 1640995200
+
+        # Verify extra data is accessible via extras property
+        assert member.extras['custom_metadata'] == {'source': 'referral', 'campaign': 'winter2023'}
+        assert member.extras['internal_notes'] == 'VIP customer'
+        assert member.extras['analytics_id'] == 'abc-123-def'
+
+    def test_webhook_event_with_extra_data(self):
+        """Test webhook events can handle extra fields from Memberful."""
+        event_data = {
+            'event': 'member_signup',
+            'member': {
+                'id': 456,
+                'email': 'user@test.com',
+                'created_at': 1640995200,
+            },
+            # Extra fields that might be added by Memberful in future
+            'webhook_version': '2.1',
+            'delivery_attempt': 1,
+            'timestamp': 1640995300,
+            'metadata': {'region': 'us-east', 'service': 'webhook-v2'},
+        }
+
+        event = MemberSignupEvent(**event_data)
+
+        # Verify core functionality works
+        assert event.event == 'member_signup'
+        assert event.member.id == 456
+        assert event.member.email == 'user@test.com'
+
+        # Verify extra data is stored and accessible via extras property
+        assert event.extras['webhook_version'] == '2.1'
+        assert event.extras['delivery_attempt'] == 1
+        assert event.extras['timestamp'] == 1640995300
+        assert event.extras['metadata'] == {'region': 'us-east', 'service': 'webhook-v2'}
+
+    def test_nested_models_with_extra_data(self):
+        """Test that nested models also handle extra data correctly."""
+        address_data = {
+            'street': '123 Main St',
+            'city': 'New York',
+            'state': 'NY',
+            # Extra fields
+            'apartment': '4B',
+            'building_code': 'A1',
+            'delivery_instructions': 'Ring twice',
+        }
+
+        address = Address(**address_data)
+
+        # Verify standard fields
+        assert address.street == '123 Main St'
+        assert address.city == 'New York'
+        assert address.state == 'NY'
+
+        # Verify extra fields are stored and accessible via extras property
+        assert address.extras['apartment'] == '4B'
+        assert address.extras['building_code'] == 'A1'
+        assert address.extras['delivery_instructions'] == 'Ring twice'
+
+    def test_extras_property_behavior(self):
+        """Test the extras property returns empty dict when no extras and is read-only."""
+        # Test with no extra data
+        member_data = {
+            'id': 123,
+            'email': 'test@example.com',
+            'created_at': 1640995200,
+        }
+        member = Member(**member_data)
+
+        # Should return empty dict when no extras
+        assert member.extras == {}
+
+        # Test with extra data
+        member_with_extras_data = {
+            'id': 456,
+            'email': 'extra@example.com',
+            'created_at': 1640995200,
+            'extra_field': 'extra_value',
+        }
+        member_with_extras = Member(**member_with_extras_data)
+
+        # Should contain the extra data
+        assert member_with_extras.extras == {'extra_field': 'extra_value'}
+
+        # Verify it's read-only (no setter method)
+        assert not hasattr(Member.extras, 'fset') or Member.extras.fset is None
