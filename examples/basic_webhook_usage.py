@@ -1,33 +1,13 @@
-"""Basic usage examples for the memberful package."""
+"""Basic webhook usage examples for the memberful package."""
 
 import json
 
-from memberful.api import MemberfulClient
 from memberful.webhooks import (
     MemberSignupEvent,
     SubscriptionCreatedEvent,
     parse_payload,
     validate_signature,
 )
-
-
-async def main():
-    """Example usage of the Memberful client."""
-    # Initialize the client with your API key
-    api_key = 'your_memberful_api_key_here'
-
-    async with MemberfulClient(api_key=api_key) as client:
-        # Get list of members
-        members = await client.get_members(page=1, per_page=10)
-        print(f'Found {len(members.get("members", []))} members')
-
-        # Get a specific member (replace with actual member ID)
-        # member = await client.get_member(member_id=12345)
-        # print(f"Member: {member}")
-
-        # Get subscriptions
-        subscriptions = await client.get_subscriptions(page=1, per_page=10)
-        print(f'Found {len(subscriptions.get("subscriptions", []))} subscriptions')
 
 
 def handle_member_signup(event: MemberSignupEvent):
@@ -78,12 +58,9 @@ def webhook_example():
 
 
 if __name__ == '__main__':
-    print('Running Memberful client examples...')
-
-    # Run the async client example
-    # asyncio.run(main())
+    print('Running Memberful webhook examples...')
 
     # Show webhook handler setup
     webhook_example()
 
-    print('Examples completed!')
+    print('Webhook examples completed!')

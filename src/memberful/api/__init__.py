@@ -1,5 +1,6 @@
 """Memberful API client."""
 
+import asyncio
 from typing import Any, Optional
 
 import httpx
@@ -83,6 +84,35 @@ class MemberfulClient:
         response = await self._request('GET', '/v1/members', params={'page': page, 'per_page': per_page})
         return response.json()
 
+    async def get_all_members(self) -> list[dict[str, Any]]:
+        """Get all members by iterating through all pages.
+
+        This method automatically handles pagination by calling get_members()
+        repeatedly until all members are retrieved. Uses 100 members per page
+        for optimal performance.
+
+        Returns:
+            List containing all member dictionaries
+        """
+        per_page: int = 100
+        all_members: list[dict[str, Any]] = []
+        page = 1
+
+        while True:
+            response = await self.get_members(page=page, per_page=per_page)
+            members = response.get('members', [])
+
+            if not members:
+                break
+
+            all_members.extend(members)
+            page += 1
+
+            # Small delay to be respectful of API rate limits
+            await asyncio.sleep(0.1)
+
+        return all_members
+
     async def get_member(self, member_id: int) -> dict[str, Any]:
         """Get a specific member by ID.
 
@@ -114,6 +144,38 @@ class MemberfulClient:
 
         response = await self._request('GET', '/v1/subscriptions', params=params)
         return response.json()
+
+    async def get_all_subscriptions(self, member_id: Optional[int] = None) -> list[dict[str, Any]]:
+        """Get all subscriptions by iterating through all pages.
+
+        This method automatically handles pagination by calling get_subscriptions()
+        repeatedly until all subscriptions are retrieved. Uses 100 subscriptions
+        per page for optimal performance.
+
+        Args:
+            member_id: Optional member ID to filter subscriptions for specific member
+
+        Returns:
+            List containing all subscription dictionaries
+        """
+        per_page: int = 100
+        all_subscriptions: list[dict[str, Any]] = []
+        page = 1
+
+        while True:
+            response = await self.get_subscriptions(member_id=member_id, page=page, per_page=per_page)
+            subscriptions = response.get('subscriptions', [])
+
+            if not subscriptions:
+                break
+
+            all_subscriptions.extend(subscriptions)
+            page += 1
+
+            # Small delay to be respectful of API rate limits
+            await asyncio.sleep(0.1)
+
+        return all_subscriptions
 
     async def close(self):
         """Close the HTTP client."""

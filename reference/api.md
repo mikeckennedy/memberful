@@ -142,6 +142,36 @@ async with MemberfulClient(api_key="your_key") as client:
     print(f"Joined: {member['created_at']}")
 ```
 
+### Get All Members (Convenience Method)
+
+Retrieve ALL members by automatically handling pagination. This method calls `get_members()` repeatedly until all members are retrieved.
+
+**Method**: `client.get_all_members()`
+
+**Parameters**: None
+
+**Returns**:
+- `list[dict[str, Any]]`: List containing all member dictionaries (not paginated response)
+
+**Example Usage**:
+```python
+async with MemberfulClient(api_key="your_key") as client:
+    # Get ALL members across all pages automatically
+    all_members = await client.get_all_members()
+    
+    print(f"Total members: {len(all_members)}")
+    for member in all_members:
+        print(f"Member: {member['email']} (ID: {member['id']})")
+```
+
+**Key Features**:
+- **Automatic Pagination**: Handles all pages transparently
+- **Rate Limiting**: Includes small delays between requests to respect API limits
+- **Clean Output**: Returns flat list of member objects, not paginated response structure
+- **High Efficiency**: Uses 100 members per page for optimal performance
+
+**Note**: This method is ideal when you need to process all members and don't want to manually handle pagination. For large datasets, consider the paginated `get_members()` method if you need more control over memory usage or processing.
+
 ## Subscription Operations
 
 ### Get Subscriptions
@@ -199,6 +229,48 @@ async with MemberfulClient(api_key="your_key") as client:
         plan = subscription.get("plan", {})
         print(f"Plan: {plan.get('name')} - ${plan.get('price', 0)/100}")
 ```
+
+### Get All Subscriptions (Convenience Method)
+
+Retrieve ALL subscriptions by automatically handling pagination. This method calls `get_subscriptions()` repeatedly until all subscriptions are retrieved.
+
+**Method**: `client.get_all_subscriptions(member_id=None)`
+
+**Parameters**:
+- `member_id` (int, optional): Filter subscriptions for specific member (None = all members)
+
+**Returns**:
+- `list[dict[str, Any]]`: List containing all subscription dictionaries (not paginated response)
+
+**Example Usage**:
+```python
+async with MemberfulClient(api_key="your_key") as client:
+    # Get ALL subscriptions across all members
+    all_subscriptions = await client.get_all_subscriptions()
+    print(f"Total subscriptions: {len(all_subscriptions)}")
+    
+    # Get ALL subscriptions for a specific member
+    member_subscriptions = await client.get_all_subscriptions(member_id=12345)
+    print(f"Member has {len(member_subscriptions)} subscriptions")
+    
+    for subscription in all_subscriptions:
+        plan = subscription.get('plan', {})
+        active = subscription.get('active', False)
+        print(f"Plan: {plan.get('name')} - Active: {active}")
+```
+
+**Key Features**:
+- **Maintains Filtering**: Preserves optional member_id filtering from original method
+- **Automatic Pagination**: Handles all pages transparently for specified filter
+- **Rate Limiting**: Includes small delays between requests to respect API limits
+- **Clean Output**: Returns flat list of subscription objects, not paginated response structure
+- **High Efficiency**: Uses 100 subscriptions per page for optimal performance
+
+**Use Cases**:
+- **All Subscriptions**: `get_all_subscriptions()` - Process every subscription across all members
+- **Member's Subscriptions**: `get_all_subscriptions(member_id=123)` - Get complete subscription history for a specific member
+
+**Note**: This method is ideal when you need to process all subscriptions (optionally filtered by member) and don't want to manually handle pagination. For large datasets, consider the paginated `get_subscriptions()` method if you need more control over memory usage or processing.
 
 ## Error Handling
 
@@ -398,14 +470,26 @@ data = await client.get_members()
 # client.close() forgotten!
 ```
 
-### 2. Handle Pagination Properly
+### 2. Use Convenience Methods for Complete Data Sets
 ```python
-async def get_all_members(client):
+# Recommended: Use convenience methods for getting all data
+async with MemberfulClient(api_key=key) as client:
+    # Get all members automatically with pagination handling
+    all_members = await client.get_all_members()
+    
+    # Get all subscriptions for all members
+    all_subscriptions = await client.get_all_subscriptions()
+    
+    # Get all subscriptions for a specific member
+    member_subscriptions = await client.get_all_subscriptions(member_id=12345)
+
+# For manual pagination control (advanced use cases):
+async def manual_pagination_example(client):
     all_members = []
     page = 1
     
     while True:
-        response = await client.get_members(page=page)
+        response = await client.get_members(page=page, per_page=50)
         members = response.get("members", [])
         
         if not members:
@@ -414,7 +498,7 @@ async def get_all_members(client):
         all_members.extend(members)
         page += 1
         
-        # Rate limiting
+        # Custom rate limiting
         if page % 10 == 0:
             await asyncio.sleep(1)
     
