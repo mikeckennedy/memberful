@@ -1,5 +1,7 @@
 """Tests for webhook handling functionality."""
 
+from typing import Any
+
 from memberful.webhooks import MemberSignupEvent, parse_payload, validate_signature
 
 
@@ -25,7 +27,7 @@ class TestWebhookFunctions:
 
     def test_parse_webhook_payload_unsupported_event(self):
         """Test that unsupported event types raise ValueError."""
-        payload = {'event': 'unsupported_event', 'data': {}}
+        payload: dict[str, Any] = {'event': 'unsupported_event', 'data': {}}
 
         try:
             parse_payload(payload)

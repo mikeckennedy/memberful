@@ -1,6 +1,7 @@
 """Tests for Pydantic webhook models."""
 
 import json
+from typing import Any
 
 import pytest
 
@@ -30,7 +31,7 @@ class TestMemberModels:
             'postal_code': '10001',
             'country': 'US',
         }
-        address = Address(**address_data)
+        address = Address.model_validate(address_data)
         assert address.street == '123 Main St'
         assert address.city == 'New York'
 
@@ -41,7 +42,7 @@ class TestMemberModels:
             'city': 'New York',
             'state': None,
         }
-        address = Address(**address_data)
+        address = Address.model_validate(address_data)
         assert address.street is None
         assert address.city == 'New York'
         assert address.state is None
@@ -50,7 +51,7 @@ class TestMemberModels:
     def test_credit_card_model(self):
         """Test CreditCard model."""
         cc_data = {'exp_month': 12, 'exp_year': 2025}
-        cc = CreditCard(**cc_data)
+        cc = CreditCard.model_validate(cc_data)
         assert cc.exp_month == 12
         assert cc.exp_year == 2025
         assert cc.last_four is None
@@ -62,7 +63,7 @@ class TestMemberModels:
             'utm_medium': 'cpc',
             'utm_campaign': 'spring_sale',
         }
-        tracking = TrackingParams(**tracking_data)
+        tracking = TrackingParams.model_validate(tracking_data)
         assert tracking.utm_source == 'google'
         assert tracking.utm_term is None
 
@@ -86,16 +87,18 @@ class TestMemberModels:
             'credit_card': {'exp_month': 12, 'exp_year': 2025},
             'tracking_params': {'utm_source': 'google'},
         }
-        member = Member(**member_data)
+        member = Member.model_validate(member_data)
         assert member.id == 123
         assert member.email == 'test@example.com'
+        assert member.address is not None
         assert member.address.street == '123 Main St'
+        assert member.credit_card is not None
         assert member.credit_card.exp_month == 12
 
     def test_member_model_minimal(self):
         """Test Member model with minimal required data."""
         member_data = {'id': 123, 'email': 'test@example.com', 'created_at': 1640995200}
-        member = Member(**member_data)
+        member = Member.model_validate(member_data)
         assert member.id == 123
         assert member.email == 'test@example.com'
         assert member.first_name is None
@@ -118,7 +121,7 @@ class TestSubscriptionModels:
             'interval_count': 1,
             'for_sale': True,
         }
-        plan = SubscriptionPlan(**plan_data)
+        plan = SubscriptionPlan.model_validate(plan_data)
         assert plan.id == 1
         assert plan.price == 1000
         assert plan.renewal_period == 'monthly'
@@ -133,7 +136,7 @@ class TestSubscriptionModels:
             'slug': 'sample-download',
             'for_sale': True,
         }
-        product = Product(**product_data)
+        product = Product.model_validate(product_data)
         assert product.id == 1
         assert product.name == 'Sample Download'
         assert product.for_sale is True
@@ -154,7 +157,7 @@ class TestWebhookEvents:
                 'unrestricted_access': False,
             },
         }
-        event = MemberSignupEvent(**event_data)
+        event = MemberSignupEvent.model_validate(event_data)
         assert event.event == 'member_signup'
         assert event.member.id == 123
         assert event.member.email == 'test@example.com'
@@ -174,7 +177,7 @@ class TestWebhookEvents:
                 'for_sale': True,
             },
         }
-        event = SubscriptionPlanCreatedEvent(**event_data)
+        event = SubscriptionPlanCreatedEvent.model_validate(event_data)
         assert event.event == 'subscription_plan.created'
         assert event.subscription.name == 'Monthly Plan'
 
@@ -190,13 +193,13 @@ class TestWebhookEvents:
                 'for_sale': True,
             },
         }
-        event = DownloadCreatedEvent(**event_data)
+        event = DownloadCreatedEvent.model_validate(event_data)
         assert event.event == 'download.created'
         assert event.product.name == 'Sample Download'
 
     def test_subscription_updated_with_changes(self):
         """Test SubscriptionUpdatedEvent with changes section."""
-        event_data = {
+        event_data: dict[str, Any] = {
             'event': 'subscription.updated',
             'member': {
                 'id': 123,
@@ -211,15 +214,18 @@ class TestWebhookEvents:
                 'autorenew': [False, True],
             },
         }
-        event = SubscriptionUpdatedEvent(**event_data)
+        event = SubscriptionUpdatedEvent.model_validate(event_data)
         assert event.event == 'subscription.updated'
+        assert event.changed is not None
         assert event.changed.plan_id == [42, 43]
         assert event.changed.autorenew == [False, True]
 
     def test_event_validation_fails_with_wrong_type(self):
         """Test that event validation fails with wrong event type."""
         with pytest.raises(ValueError):
-            MemberSignupEvent(event='wrong_event', member={'id': 1, 'email': 'test@example.com', 'created_at': 123})
+            MemberSignupEvent.model_validate(
+                {'event': 'wrong_event', 'member': {'id': 1, 'email': 'test@example.com', 'created_at': 123}}
+            )
 
 
 class TestJsonCompatibility:
@@ -266,12 +272,15 @@ class TestJsonCompatibility:
         }
         """
         data = json.loads(json_data)
-        event = MemberSignupEvent(**data)
+        event = MemberSignupEvent.model_validate(data)
 
         assert event.event == 'member_signup'
         assert event.member.email == 'john.doe@example.com'
+        assert event.member.address is not None
         assert event.member.address.street == 'Street'
+        assert event.member.tracking_params is not None
         assert event.member.tracking_params.utm_source == 'instagram'
+        assert event.member.credit_card is not None
         assert event.member.credit_card.exp_year == 2040
 
     def test_parse_subscription_plan_created_json(self):
@@ -292,7 +301,7 @@ class TestJsonCompatibility:
         }
         """
         data = json.loads(json_data)
-        event = SubscriptionPlanCreatedEvent(**data)
+        event = SubscriptionPlanCreatedEvent.model_validate(data)
 
         assert event.event == 'subscription_plan.created'
         assert event.subscription.name == 'Sample plan'
@@ -315,7 +324,7 @@ class TestExtraDataHandling:
             'analytics_id': 'abc-123-def',
         }
 
-        member = Member(**member_data)
+        member = Member.model_validate(member_data)
 
         # Verify required fields work
         assert member.id == 123
@@ -343,7 +352,7 @@ class TestExtraDataHandling:
             'metadata': {'region': 'us-east', 'service': 'webhook-v2'},
         }
 
-        event = MemberSignupEvent(**event_data)
+        event = MemberSignupEvent.model_validate(event_data)
 
         # Verify core functionality works
         assert event.event == 'member_signup'
@@ -368,7 +377,7 @@ class TestExtraDataHandling:
             'delivery_instructions': 'Ring twice',
         }
 
-        address = Address(**address_data)
+        address = Address.model_validate(address_data)
 
         # Verify standard fields
         assert address.street == '123 Main St'
@@ -388,7 +397,7 @@ class TestExtraDataHandling:
             'email': 'test@example.com',
             'created_at': 1640995200,
         }
-        member = Member(**member_data)
+        member = Member.model_validate(member_data)
 
         # Should return empty dict when no extras
         assert member.extras == {}
@@ -400,7 +409,7 @@ class TestExtraDataHandling:
             'created_at': 1640995200,
             'extra_field': 'extra_value',
         }
-        member_with_extras = Member(**member_with_extras_data)
+        member_with_extras = Member.model_validate(member_with_extras_data)
 
         # Should contain the extra data
         assert member_with_extras.extras == {'extra_field': 'extra_value'}
