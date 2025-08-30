@@ -257,16 +257,16 @@ if __name__ == '__main__':
 
     if len(sys.argv) > 1 and sys.argv[1] in ['--help', '-h']:
         print('Usage:')
-        print('  python test_webhook.py                    # Test all webhook types')
-        print('  python test_webhook.py <event_name>       # Test specific event')
+        print('  python webhook_tester.py                    # Test all webhook types')
+        print('  python webhook_tester.py <event_name>       # Test specific event')
         print()
         print('Available events:')
         for event_name in SAMPLE_PAYLOADS:
             print(f'  - {event_name}')
         print()
         print('Examples:')
-        print('  python test_webhook.py member_signup')
-        print('  python test_webhook.py subscription_created')
+        print('  python webhook_tester.py member_signup')
+        print('  python webhook_tester.py subscription_created')
         exit(0)
 
     asyncio.run(main())
