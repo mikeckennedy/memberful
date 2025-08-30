@@ -2,8 +2,8 @@
 
 import json
 
-from memberful import (
-    MemberfulClient,
+from memberful.api import MemberfulClient
+from memberful.webhooks import (
     MemberSignupEvent,
     SubscriptionCreatedEvent,
     parse_payload,

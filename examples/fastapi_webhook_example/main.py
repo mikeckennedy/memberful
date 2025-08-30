@@ -11,8 +11,7 @@ from datetime import datetime
 from fastapi import FastAPI, HTTPException, Request, status
 
 # Import the webhook models and parsing function from the memberful package
-from memberful import parse_payload
-from memberful.webhook_models import (
+from memberful.webhooks import (
     DownloadCreatedEvent,
     DownloadDeletedEvent,
     DownloadUpdatedEvent,
@@ -26,6 +25,7 @@ from memberful.webhook_models import (
     SubscriptionPlanUpdatedEvent,
     SubscriptionUpdatedEvent,
     WebhookEvent,
+    parse_payload,
 )
 
 app = FastAPI(

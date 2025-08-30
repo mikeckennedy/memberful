@@ -2,7 +2,7 @@
 
 import json
 
-from memberful.webhook_models import (
+from memberful.webhooks import (
     DownloadCreatedEvent,
     MemberSignupEvent,
     OrderCompletedEvent,

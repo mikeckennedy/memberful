@@ -1,56 +1,17 @@
-"""Memberful Python client for webhooks and API."""
+"""Memberful Python client for webhooks and API.
+
+Use the submodules to access functionality:
+- memberful.api: API client (MemberfulClient)
+- memberful.webhooks: Webhook handling (parse_payload, validate_signature, event models)
+"""
 
 __version__ = '0.1.0'
 __author__ = 'Michael Kennedy'
 
-# Main exports
-# Import webhooks submodule - this allows: import memberful.webhooks
-from . import webhooks
-from .client import MemberfulClient
-
-# For backward compatibility, expose webhook functions at top level
-from .webhooks import (
-    DownloadCreatedEvent,
-    DownloadDeletedEvent,
-    DownloadUpdatedEvent,
-    Member,
-    MemberSignupEvent,
-    MemberUpdatedEvent,
-    Order,
-    OrderCompletedEvent,
-    OrderSuspendedEvent,
-    Product,
-    SubscriptionCreatedEvent,
-    SubscriptionPlan,
-    SubscriptionPlanCreatedEvent,
-    SubscriptionPlanDeletedEvent,
-    SubscriptionPlanUpdatedEvent,
-    SubscriptionUpdatedEvent,
-    WebhookEvent,
-    parse_payload,
-    validate_signature,
-)
+# Import submodules - users must access functionality through these
+from . import api, webhooks
 
 __all__ = [
-    'MemberfulClient',
+    'api',  # API submodule
     'webhooks',  # Webhooks submodule
-    'parse_payload',
-    'validate_signature',
-    'WebhookEvent',
-    'MemberSignupEvent',
-    'MemberUpdatedEvent',
-    'SubscriptionCreatedEvent',
-    'SubscriptionUpdatedEvent',
-    'OrderCompletedEvent',
-    'OrderSuspendedEvent',
-    'SubscriptionPlanCreatedEvent',
-    'SubscriptionPlanUpdatedEvent',
-    'SubscriptionPlanDeletedEvent',
-    'DownloadCreatedEvent',
-    'DownloadUpdatedEvent',
-    'DownloadDeletedEvent',
-    'Member',
-    'Order',
-    'Product',
-    'SubscriptionPlan',
 ]

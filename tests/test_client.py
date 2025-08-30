@@ -2,7 +2,7 @@
 
 import pytest
 
-from memberful import MemberfulClient
+from memberful.api import MemberfulClient
 
 
 class TestMemberfulClient:

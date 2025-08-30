@@ -1,7 +1,6 @@
 """Tests for webhook handling functionality."""
 
-
-from memberful import MemberSignupEvent, parse_payload, validate_signature
+from memberful.webhooks import MemberSignupEvent, parse_payload, validate_signature
 
 
 class TestWebhookFunctions:
