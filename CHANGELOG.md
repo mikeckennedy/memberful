@@ -23,12 +23,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Development tooling setup (ruff, mypy, pre-commit)
 - PyPI packaging configuration
 - Example code for webhook parsing and API usage
-
-## [0.1.0] - 2024-12-28
-
-### Added
-- Initial project skeleton created
-- Basic project structure for PyPI publishing
-- Core modules: client.py and webhooks.py
-- Test structure with pytest configuration
-- Development environment setup with uv
+- Project structure and development environment setup with uv
