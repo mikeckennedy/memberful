@@ -29,6 +29,7 @@ keywords = ["memberful", "webhooks", "api", "membership", "subscription"]
 dependencies = [
     "httpx>=0.25.0",
     "pydantic>=2.0.0",
+    "stamina>=24.0.0",
 ]
 
 [project.optional-dependencies]

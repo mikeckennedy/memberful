@@ -4,6 +4,7 @@ import asyncio
 from typing import Any, Optional
 
 import httpx
+import stamina
 from pydantic import BaseModel
 
 
@@ -16,6 +17,7 @@ class MemberfulClientConfig(BaseModel):
 
 
 class MemberfulClient:
+    request_timeout_in_seconds: float = 20.0
     """Client for interacting with the Memberful API."""
 
     def __init__(self, api_key: str, base_url: str = 'https://api.memberful.com', timeout: float = 30.0):
@@ -81,8 +83,16 @@ class MemberfulClient:
         Returns:
             Dictionary containing members data
         """
-        response = await self._request('GET', '/v1/members', params={'page': page, 'per_page': per_page})
-        return response.json()
+        async for attempt in stamina.retry_async(  # type: ignore[misc]
+            on=(httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException),
+            attempts=3,
+            timeout=self.request_timeout_in_seconds,
+        ):
+            with attempt:  # type: ignore[misc]
+                response = await self._request('GET', '/v1/members', params={'page': page, 'per_page': per_page})
+                return response.json()
+        # This line will never be reached due to stamina's retry logic
+        raise RuntimeError('Retry exhausted')  # pragma: no cover
 
     async def get_all_members(self) -> list[dict[str, Any]]:
         """Get all members by iterating through all pages.
@@ -109,7 +119,7 @@ class MemberfulClient:
             page += 1
 
             # Small delay to be respectful of API rate limits
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.25)
 
         return all_members
 
@@ -122,8 +132,16 @@ class MemberfulClient:
         Returns:
             Dictionary containing member data
         """
-        response = await self._request('GET', f'/v1/members/{member_id}')
-        return response.json()
+        async for attempt in stamina.retry_async(  # type: ignore[misc]
+            on=(httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException),
+            attempts=3,
+            timeout=self.request_timeout_in_seconds,
+        ):
+            with attempt:  # type: ignore[misc]
+                response = await self._request('GET', f'/v1/members/{member_id}')
+                return response.json()
+        # This line will never be reached due to stamina's retry logic
+        raise RuntimeError('Retry exhausted')  # pragma: no cover
 
     async def get_subscriptions(
         self, member_id: Optional[int] = None, page: int = 1, per_page: int = 100
@@ -173,7 +191,7 @@ class MemberfulClient:
             page += 1
 
             # Small delay to be respectful of API rate limits
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.25)
 
         return all_subscriptions
 
