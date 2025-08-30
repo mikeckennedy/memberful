@@ -7,11 +7,11 @@ existing webhook models and parsing functionality.
 
 import json
 from datetime import datetime
-from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, status
 
 # Import the webhook models and parsing function from the memberful package
+from memberful import parse_webhook_payload
 from memberful.webhook_models import (
     DownloadCreatedEvent,
     DownloadDeletedEvent,
@@ -33,49 +33,6 @@ app = FastAPI(
     description='A FastAPI app that handles all Memberful webhook events',
     version='1.0.0',
 )
-
-
-def parse_webhook_payload(payload: dict[str, Any]) -> WebhookEvent:
-    """Parse a webhook payload into the appropriate Pydantic model.
-
-    Args:
-        payload: Parsed JSON webhook payload
-
-    Returns:
-        Parsed webhook event model
-
-    Raises:
-        ValueError: If the payload format is invalid
-    """
-    event_type = payload.get('event')
-
-    # Parse based on event type
-    if event_type == 'member_signup':
-        return MemberSignupEvent(**payload)
-    elif event_type == 'member_updated':
-        return MemberUpdatedEvent(**payload)
-    elif event_type == 'subscription.created':
-        return SubscriptionCreatedEvent(**payload)
-    elif event_type == 'subscription.updated':
-        return SubscriptionUpdatedEvent(**payload)
-    elif event_type == 'order.completed':
-        return OrderCompletedEvent(**payload)
-    elif event_type == 'order.suspended':
-        return OrderSuspendedEvent(**payload)
-    elif event_type == 'subscription_plan.created':
-        return SubscriptionPlanCreatedEvent(**payload)
-    elif event_type == 'subscription_plan.updated':
-        return SubscriptionPlanUpdatedEvent(**payload)
-    elif event_type == 'subscription_plan.deleted':
-        return SubscriptionPlanDeletedEvent(**payload)
-    elif event_type == 'download.created':
-        return DownloadCreatedEvent(**payload)
-    elif event_type == 'download.updated':
-        return DownloadUpdatedEvent(**payload)
-    elif event_type == 'download.deleted':
-        return DownloadDeletedEvent(**payload)
-    else:
-        raise ValueError(f'Unsupported event type: {event_type}')
 
 
 def handle_member_signup(event: MemberSignupEvent):
@@ -193,32 +150,34 @@ def handle_webhook_event(event: WebhookEvent):
     print(f'\n[{timestamp}] Processing webhook event: {event.event}')
     print('-' * 60)
 
-    if isinstance(event, MemberSignupEvent):
-        handle_member_signup(event)
-    elif isinstance(event, MemberUpdatedEvent):
-        handle_member_updated(event)
-    elif isinstance(event, SubscriptionCreatedEvent):
-        handle_subscription_created(event)
-    elif isinstance(event, SubscriptionUpdatedEvent):
-        handle_subscription_updated(event)
-    elif isinstance(event, OrderCompletedEvent):
-        handle_order_completed(event)
-    elif isinstance(event, OrderSuspendedEvent):
-        handle_order_suspended(event)
-    elif isinstance(event, SubscriptionPlanCreatedEvent):
-        handle_subscription_plan_created(event)
-    elif isinstance(event, SubscriptionPlanUpdatedEvent):
-        handle_subscription_plan_updated(event)
-    elif isinstance(event, SubscriptionPlanDeletedEvent):
-        handle_subscription_plan_deleted(event)
-    elif isinstance(event, DownloadCreatedEvent):
-        handle_download_created(event)
-    elif isinstance(event, DownloadUpdatedEvent):
-        handle_download_updated(event)
-    elif isinstance(event, DownloadDeletedEvent):
-        handle_download_deleted(event)
-    else:
-        print(f'📨 [UNKNOWN EVENT] Received webhook: {event.event}')
+    # Handle different event types using match statement
+    match event:
+        case MemberSignupEvent():
+            handle_member_signup(event)
+        case MemberUpdatedEvent():
+            handle_member_updated(event)
+        case SubscriptionCreatedEvent():
+            handle_subscription_created(event)
+        case SubscriptionUpdatedEvent():
+            handle_subscription_updated(event)
+        case OrderCompletedEvent():
+            handle_order_completed(event)
+        case OrderSuspendedEvent():
+            handle_order_suspended(event)
+        case SubscriptionPlanCreatedEvent():
+            handle_subscription_plan_created(event)
+        case SubscriptionPlanUpdatedEvent():
+            handle_subscription_plan_updated(event)
+        case SubscriptionPlanDeletedEvent():
+            handle_subscription_plan_deleted(event)
+        case DownloadCreatedEvent():
+            handle_download_created(event)
+        case DownloadUpdatedEvent():
+            handle_download_updated(event)
+        case DownloadDeletedEvent():
+            handle_download_deleted(event)
+        case _:  # type: ignore # noqa: PERF102
+            print(f'📨 [UNKNOWN EVENT] Received webhook: {event.event}')
 
     print('-' * 60)
 

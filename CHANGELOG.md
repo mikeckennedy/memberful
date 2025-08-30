@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Support for all documented webhook events (member, subscription, order, plan, download)
   - Permissive field handling with optional fields and default values
   - Enum support for known values (signup methods, order statuses, etc.)
+- `parse_webhook_payload()` utility function for easy webhook parsing
+  - Automatically maps webhook event types to the appropriate Pydantic models
+  - Exported from the main package for convenient access
 - Comprehensive test suite setup with pytest (19 passing tests)
 - Development tooling setup (ruff, mypy, pre-commit)
 - PyPI packaging configuration

@@ -8,6 +8,22 @@ from typing import Any, Callable, Optional
 
 from pydantic import BaseModel
 
+from .webhook_models import (
+    DownloadCreatedEvent,
+    DownloadDeletedEvent,
+    DownloadUpdatedEvent,
+    MemberSignupEvent,
+    MemberUpdatedEvent,
+    OrderCompletedEvent,
+    OrderSuspendedEvent,
+    SubscriptionCreatedEvent,
+    SubscriptionPlanCreatedEvent,
+    SubscriptionPlanDeletedEvent,
+    SubscriptionPlanUpdatedEvent,
+    SubscriptionUpdatedEvent,
+    WebhookEvent,
+)
+
 
 class WebhookEventType(Enum):
     """Supported Memberful webhook event types."""
@@ -39,6 +55,58 @@ class WebhookPayload(BaseModel):
             return None
 
 
+def parse_webhook_payload(payload: dict[str, Any]) -> WebhookEvent:
+    """Parse a webhook payload into the appropriate Pydantic model.
+
+    This function takes a raw webhook payload dictionary and returns the appropriate
+    strongly-typed webhook event model based on the event type.
+
+    Args:
+        payload: Parsed JSON webhook payload dictionary
+
+    Returns:
+        Parsed webhook event model (subclass of WebhookEvent)
+
+    Raises:
+        ValueError: If the payload format is invalid or event type is unsupported
+
+    Example:
+        >>> payload = {"event": "member_signup", "member": {...}, ...}
+        >>> event = parse_webhook_payload(payload)
+        >>> isinstance(event, MemberSignupEvent)
+        True
+    """
+    event_type = payload.get('event')
+
+    # Parse based on event type
+    if event_type == 'member_signup':
+        return MemberSignupEvent(**payload)
+    elif event_type == 'member_updated':
+        return MemberUpdatedEvent(**payload)
+    elif event_type == 'subscription.created':
+        return SubscriptionCreatedEvent(**payload)
+    elif event_type == 'subscription.updated':
+        return SubscriptionUpdatedEvent(**payload)
+    elif event_type == 'order.completed':
+        return OrderCompletedEvent(**payload)
+    elif event_type == 'order.suspended':
+        return OrderSuspendedEvent(**payload)
+    elif event_type == 'subscription_plan.created':
+        return SubscriptionPlanCreatedEvent(**payload)
+    elif event_type == 'subscription_plan.updated':
+        return SubscriptionPlanUpdatedEvent(**payload)
+    elif event_type == 'subscription_plan.deleted':
+        return SubscriptionPlanDeletedEvent(**payload)
+    elif event_type == 'download.created':
+        return DownloadCreatedEvent(**payload)
+    elif event_type == 'download.updated':
+        return DownloadUpdatedEvent(**payload)
+    elif event_type == 'download.deleted':
+        return DownloadDeletedEvent(**payload)
+    else:
+        raise ValueError(f'Unsupported event type: {event_type}')
+
+
 class WebhookHandler:
     """Handler for Memberful webhooks."""
 
@@ -49,7 +117,7 @@ class WebhookHandler:
             secret_key: Optional webhook secret key for signature verification
         """
         self.secret_key = secret_key
-        self._event_handlers: dict[WebhookEventType, list[Callable]] = {}
+        self._event_handlers: dict[WebhookEventType, list[Callable[[dict[str, Any]], None]]] = {}
 
     def register_handler(self, event_type: WebhookEventType, handler: Callable[[dict[str, Any]], None]):
         """Register a handler for a specific event type.
