@@ -2,6 +2,17 @@
 
 This document provides comprehensive documentation for the Memberful GraphQL API as implemented in our Python package. Based on the [official Memberful API documentation](https://memberful.com/help/custom-development-and-api/memberful-api/), this reference shows how to use the API through our `MemberfulClient` class.
 
+## Type Safety with Pydantic Models
+
+Our API client returns fully typed Pydantic models instead of raw dictionaries, providing:
+
+- **Type Safety**: Full IDE autocomplete and type checking
+- **Runtime Validation**: Automatic data validation and parsing
+- **Better Documentation**: Clear data structure definitions
+- **Easier Development**: Intuitive attribute access instead of dictionary keys
+
+All API responses are automatically parsed into strongly-typed models from `memberful.api.models`.
+
 ## Getting Started
 
 The Memberful API uses GraphQL and requires authentication via API key. All requests are made to a single endpoint with queries and mutations sent as POST requests.
@@ -12,13 +23,16 @@ Import and initialize the client from:
 
 ```python
 from memberful.api import MemberfulClient
+# Optional: Import models for type hints
+from memberful.api.models import Member, MembersResponse, Subscription, SubscriptionsResponse
 
 # Initialize with your API key
 client = MemberfulClient(api_key="your_api_key_here")
 
 # Use as async context manager (recommended)
 async with MemberfulClient(api_key="your_api_key_here") as client:
-    members = await client.get_members()
+    members_response = await client.get_members()  # Returns MembersResponse
+    members = members_response.members  # List of Member objects
 ```
 
 ### Configuration Options
@@ -52,6 +66,10 @@ API keys are generated from your Memberful dashboard under **Settings → Custom
 Retrieve a paginated list of all members.
 
 **Method**: `client.get_members(page=1, per_page=100)`
+
+**Returns**: `MembersResponse` - A typed Pydantic model containing:
+- `members`: List of `Member` objects
+- `total_count`, `total_pages`, `current_page`, `per_page`: Pagination metadata (optional)
 
 **GraphQL Equivalent**:
 ```graphql
@@ -91,12 +109,21 @@ query {
 **Example Usage**:
 ```python
 async with MemberfulClient(api_key="your_key") as client:
-    # Get first page of members
+    # Get first page of members (returns MembersResponse)
     response = await client.get_members(page=1, per_page=50)
-    members = response.get("members", [])
     
-    for member in members:
-        print(f"Member: {member['email']} (ID: {member['id']})")
+    # Access members with full type safety
+    print(f"Found {len(response.members)} members")
+    
+    for member in response.members:
+        print(f"Member: {member.email} (ID: {member.id})")
+        print(f"Name: {member.full_name}, Joined: {member.created_at}")
+        
+        # Access nested subscription data if available
+        if member.subscriptions:
+            for subscription in member.subscriptions:
+                plan_name = subscription.plan.name if subscription.plan else 'Unknown'
+                print(f"  Subscription: {plan_name} (Active: {subscription.active})")
 ```
 
 ### Get Individual Member
@@ -104,6 +131,8 @@ async with MemberfulClient(api_key="your_key") as client:
 Retrieve detailed information about a specific member.
 
 **Method**: `client.get_member(member_id)`
+
+**Returns**: `Member` - A typed Pydantic model with complete member information
 
 **GraphQL Equivalent**:
 ```graphql
@@ -137,9 +166,21 @@ query {
 **Example Usage**:
 ```python
 async with MemberfulClient(api_key="your_key") as client:
+    # Returns Member object with full type safety
     member = await client.get_member(member_id=12345)
-    print(f"Member: {member['full_name']} ({member['email']})")
-    print(f"Joined: {member['created_at']}")
+    
+    print(f"Member: {member.full_name} ({member.email})")
+    print(f"Joined: {member.created_at}")
+    print(f"Username: {member.username}")
+    
+    # Access address information if available
+    if member.address:
+        print(f"Location: {member.address.city}, {member.address.country}")
+    
+    # Access subscription information if available
+    if member.subscriptions:
+        active_subs = [s for s in member.subscriptions if s.active]
+        print(f"Active subscriptions: {len(active_subs)}")
 ```
 
 ### Get All Members (Convenience Method)
@@ -151,23 +192,28 @@ Retrieve ALL members by automatically handling pagination. This method calls `ge
 **Parameters**: None
 
 **Returns**:
-- `list[dict[str, Any]]`: List containing all member dictionaries (not paginated response)
+- `list[Member]`: List containing all Member objects (not paginated response)
 
 **Example Usage**:
 ```python
 async with MemberfulClient(api_key="your_key") as client:
-    # Get ALL members across all pages automatically
+    # Get ALL members across all pages automatically (returns list[Member])
     all_members = await client.get_all_members()
     
     print(f"Total members: {len(all_members)}")
     for member in all_members:
-        print(f"Member: {member['email']} (ID: {member['id']})")
+        print(f"Member: {member.email} (ID: {member.id})")
+        print(f"Signup method: {member.signup_method}")
+        
+        # Type-safe access to all member attributes
+        if member.stripe_customer_id:
+            print(f"Stripe ID: {member.stripe_customer_id}")
 ```
 
 **Key Features**:
 - **Automatic Pagination**: Handles all pages transparently
 - **Rate Limiting**: Includes small delays between requests to respect API limits
-- **Clean Output**: Returns flat list of member objects, not paginated response structure
+- **Type Safety**: Returns flat list of `Member` objects with full IDE support
 - **High Efficiency**: Uses 100 members per page for optimal performance
 
 **Note**: This method is ideal when you need to process all members and don't want to manually handle pagination. For large datasets, consider the paginated `get_members()` method if you need more control over memory usage or processing.
@@ -179,6 +225,10 @@ async with MemberfulClient(api_key="your_key") as client:
 Retrieve subscriptions, optionally filtered by member.
 
 **Method**: `client.get_subscriptions(member_id=None, page=1, per_page=100)`
+
+**Returns**: `SubscriptionsResponse` - A typed Pydantic model containing:
+- `subscriptions`: List of `Subscription` objects
+- `total_count`, `total_pages`, `current_page`, `per_page`: Pagination metadata (optional)
 
 **GraphQL Equivalent**:
 ```graphql
@@ -219,15 +269,24 @@ query {
 **Example Usage**:
 ```python
 async with MemberfulClient(api_key="your_key") as client:
-    # Get all subscriptions
+    # Get all subscriptions (returns SubscriptionsResponse)
     all_subs = await client.get_subscriptions(page=1, per_page=100)
     
     # Get subscriptions for specific member
     member_subs = await client.get_subscriptions(member_id=12345)
     
-    for subscription in member_subs.get("subscriptions", []):
-        plan = subscription.get("plan", {})
-        print(f"Plan: {plan.get('name')} - ${plan.get('price', 0)/100}")
+    for subscription in member_subs.subscriptions:
+        # Type-safe access to subscription and plan data
+        if subscription.plan:
+            price_dollars = subscription.plan.price / 100
+            print(f"Plan: {subscription.plan.name} - ${price_dollars:.2f}")
+            print(f"Renewal: {subscription.plan.renewal_period}")
+        
+        print(f"Active: {subscription.active}")
+        print(f"Created: {subscription.created_at}")
+        
+        if subscription.expires_at:
+            print(f"Expires: {subscription.expires_at}")
 ```
 
 ### Get All Subscriptions (Convenience Method)
@@ -240,12 +299,12 @@ Retrieve ALL subscriptions by automatically handling pagination. This method cal
 - `member_id` (int, optional): Filter subscriptions for specific member (None = all members)
 
 **Returns**:
-- `list[dict[str, Any]]`: List containing all subscription dictionaries (not paginated response)
+- `list[Subscription]`: List containing all Subscription objects (not paginated response)
 
 **Example Usage**:
 ```python
 async with MemberfulClient(api_key="your_key") as client:
-    # Get ALL subscriptions across all members
+    # Get ALL subscriptions across all members (returns list[Subscription])
     all_subscriptions = await client.get_all_subscriptions()
     print(f"Total subscriptions: {len(all_subscriptions)}")
     
@@ -254,16 +313,20 @@ async with MemberfulClient(api_key="your_key") as client:
     print(f"Member has {len(member_subscriptions)} subscriptions")
     
     for subscription in all_subscriptions:
-        plan = subscription.get('plan', {})
-        active = subscription.get('active', False)
-        print(f"Plan: {plan.get('name')} - Active: {active}")
+        # Full type safety with nested plan access
+        plan_info = f"Plan: {subscription.plan.name}" if subscription.plan else "No plan"
+        print(f"{plan_info} - Active: {subscription.active}")
+        
+        # Access all subscription attributes with autocomplete
+        if subscription.in_trial_period:
+            print(f"  Trial ends: {subscription.trial_end_at}")
 ```
 
 **Key Features**:
 - **Maintains Filtering**: Preserves optional member_id filtering from original method
 - **Automatic Pagination**: Handles all pages transparently for specified filter
 - **Rate Limiting**: Includes small delays between requests to respect API limits
-- **Clean Output**: Returns flat list of subscription objects, not paginated response structure
+- **Type Safety**: Returns flat list of `Subscription` objects with full IDE support
 - **High Efficiency**: Uses 100 subscriptions per page for optimal performance
 
 **Use Cases**:
@@ -404,33 +467,76 @@ async with MemberfulClient(api_key="your_key") as client:
 
 ## Data Types and Structures
 
-### Member Object
+### Pydantic Models
+
+All API responses use strongly-typed Pydantic models. Here are the key models:
+
+#### Member Model
 ```python
-{
-    "id": 12345,
-    "full_name": "John Doe",
-    "email": "john@example.com",
-    "created_at": 1756245496,
-    "stripe_customer_id": "cus_12345",
-    "subscriptions": [...],
-    "custom_fields": {...}
-}
+from memberful.api.models import Member
+
+# Example Member object with full type safety
+member = Member(
+    id=12345,
+    email="john@example.com",
+    full_name="John Doe",
+    created_at=1756245496,
+    stripe_customer_id="cus_12345",
+    signup_method="checkout",
+    unrestricted_access=False,
+    # Optional nested objects
+    address=Address(city="San Francisco", country="US"),
+    subscriptions=[...],  # List of Subscription objects
+    custom_fields={"company": "Acme Corp"}
+)
+
+# Access with full IDE support
+print(member.email)  # IDE autocomplete works
+print(member.address.city if member.address else "No address")
 ```
 
-### Subscription Object
+#### Subscription Model
 ```python
-{
-    "id": 67890,
-    "active": True,
-    "created_at": 1756245496,
-    "expires_at": 1758837496,
-    "plan": {
-        "id": 1,
-        "name": "Premium Plan",
-        "price": 2999,  # Price in cents
-        "renewal_period": "monthly"
-    }
-}
+from memberful.api.models import Subscription, Plan
+
+# Example Subscription object
+subscription = Subscription(
+    id=67890,
+    active=True,
+    created_at=1756245496,
+    expires_at=1758837496,
+    in_trial_period=False,
+    plan=Plan(
+        id=1,
+        name="Premium Plan",
+        price=2999,  # Price in cents
+        renewal_period="monthly",
+        slug="premium"
+    )
+)
+
+# Type-safe access to all fields
+print(f"${subscription.plan.price / 100:.2f}")
+print(subscription.plan.renewal_period)  # Enum with validation
+```
+
+#### Response Models
+```python
+from memberful.api.models import MembersResponse, SubscriptionsResponse
+
+# Paginated responses include metadata
+response = MembersResponse(
+    members=[member1, member2, ...],  # List of Member objects
+    total_count=150,
+    current_page=1,
+    per_page=100
+)
+
+# Direct access to data and pagination info
+for member in response.members:
+    print(member.email)
+    
+print(f"Page {response.current_page} of {response.total_pages}")
 ```
 
 ## Limitations and Future Enhancements
@@ -449,10 +555,36 @@ async with MemberfulClient(api_key="your_key") as client:
 - **Cursor Pagination**: More efficient cursor-based pagination
 - **Bulk Operations**: Batch create/update operations
 
+## Available Models
+
+All models are available from `memberful.api.models`:
+
+### Core Models
+- `Member` - Complete member information
+- `Subscription` - Subscription details with plan relationships
+- `Plan` - Subscription plan information (price, renewal, etc.)
+- `Product` - Download/product details
+- `Address` - Member address information
+- `CreditCard` - Payment method information
+- `TrackingParams` - UTM tracking parameters
+
+### Response Models
+- `MembersResponse` - Paginated members list
+- `SubscriptionsResponse` - Paginated subscriptions list
+- `MemberResponse` - Single member wrapper
+- `SubscriptionResponse` - Single subscription wrapper
+
+### Enums
+- `SignupMethod` - How the member signed up (checkout, manual, api, import)
+- `RenewalPeriod` - Subscription renewal frequency (monthly, yearly, etc.)
+- `IntervalUnit` - Time interval units (month, year, quarter, week, day)
+
+All models include extra field handling and provide an `extras` property for accessing any additional data not explicitly defined in the model schema.
+
 ## Related Documentation
 
 - **Webhooks**: See `webhooks.md` for webhook event handling
-- **Examples**: Check `examples/basic_usage.py` for practical examples
+- **Examples**: Check `examples/basic_api_usage.py` for practical examples with typed models
 - **Official API**: [Memberful API Documentation](https://memberful.com/help/custom-development-and-api/memberful-api/)
 - **GraphQL**: [GraphQL API Explorer](https://memberful.com/help/custom-development-and-api/memberful-api/#using-the-graphql-api-explorer)
 
@@ -474,10 +606,17 @@ data = await client.get_members()
 ```python
 # Recommended: Use convenience methods for getting all data
 async with MemberfulClient(api_key=key) as client:
-    # Get all members automatically with pagination handling
+    # Get all members automatically with pagination handling (returns list[Member])
     all_members = await client.get_all_members()
     
-    # Get all subscriptions for all members
+    # Full type safety - no more dictionary access
+    for member in all_members:
+        print(f"{member.full_name} - {member.email}")
+        if member.subscriptions:
+            active_count = sum(1 for s in member.subscriptions if s.active)
+            print(f"  Active subscriptions: {active_count}")
+    
+    # Get all subscriptions for all members (returns list[Subscription])
     all_subscriptions = await client.get_all_subscriptions()
     
     # Get all subscriptions for a specific member
@@ -489,16 +628,17 @@ async def manual_pagination_example(client):
     page = 1
     
     while True:
+        # Returns MembersResponse with type safety
         response = await client.get_members(page=page, per_page=50)
-        members = response.get("members", [])
         
-        if not members:
+        if not response.members:  # Access typed members list
             break
             
-        all_members.extend(members)
+        all_members.extend(response.members)
         page += 1
         
-        # Custom rate limiting
+        # Custom rate limiting with pagination metadata
+        print(f"Processed page {response.current_page} of {response.total_pages}")
         if page % 10 == 0:
             await asyncio.sleep(1)
     
@@ -512,7 +652,9 @@ from httpx import HTTPStatusError, ConnectError
 async def safe_api_call():
     try:
         async with MemberfulClient(api_key=key) as client:
-            return await client.get_members()
+            # Returns MembersResponse, not dict
+            response = await client.get_members()
+            return response.members  # Extract typed Member objects
     except HTTPStatusError as e:
         if e.response.status_code == 401:
             raise ValueError("Invalid API key")

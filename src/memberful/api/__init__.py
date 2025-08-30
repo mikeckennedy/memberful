@@ -7,6 +7,13 @@ import httpx
 import stamina
 from pydantic import BaseModel
 
+from .models import (
+    Member,
+    MembersResponse,
+    Subscription,
+    SubscriptionsResponse,
+)
+
 
 class MemberfulClientConfig(BaseModel):
     """Configuration for the Memberful client."""
@@ -73,7 +80,7 @@ class MemberfulClient:
         response.raise_for_status()
         return response
 
-    async def get_members(self, page: int = 1, per_page: int = 100) -> dict[str, Any]:
+    async def get_members(self, page: int = 1, per_page: int = 100) -> MembersResponse:
         """Get list of members.
 
         Args:
@@ -81,7 +88,7 @@ class MemberfulClient:
             per_page: Number of members per page (default: 100)
 
         Returns:
-            Dictionary containing members data
+            MembersResponse containing members data with pagination info
         """
         async for attempt in stamina.retry_async(  # type: ignore[misc]
             on=(httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException),
@@ -90,11 +97,12 @@ class MemberfulClient:
         ):
             with attempt:  # type: ignore[misc]
                 response = await self._request('GET', '/v1/members', params={'page': page, 'per_page': per_page})
-                return response.json()
+                data = response.json()
+                return MembersResponse(**data)
         # This line will never be reached due to stamina's retry logic
         raise RuntimeError('Retry exhausted')  # pragma: no cover
 
-    async def get_all_members(self) -> list[dict[str, Any]]:
+    async def get_all_members(self) -> list[Member]:
         """Get all members by iterating through all pages.
 
         This method automatically handles pagination by calling get_members()
@@ -102,15 +110,15 @@ class MemberfulClient:
         for optimal performance.
 
         Returns:
-            List containing all member dictionaries
+            List containing all Member objects
         """
         per_page: int = 100
-        all_members: list[dict[str, Any]] = []
+        all_members: list[Member] = []
         page = 1
 
         while True:
             response = await self.get_members(page=page, per_page=per_page)
-            members = response.get('members', [])
+            members = response.members
 
             if not members:
                 break
@@ -123,14 +131,14 @@ class MemberfulClient:
 
         return all_members
 
-    async def get_member(self, member_id: int) -> dict[str, Any]:
+    async def get_member(self, member_id: int) -> Member:
         """Get a specific member by ID.
 
         Args:
             member_id: The member's ID
 
         Returns:
-            Dictionary containing member data
+            Member object containing member data
         """
         async for attempt in stamina.retry_async(  # type: ignore[misc]
             on=(httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException),
@@ -139,13 +147,18 @@ class MemberfulClient:
         ):
             with attempt:  # type: ignore[misc]
                 response = await self._request('GET', f'/v1/members/{member_id}')
-                return response.json()
+                data = response.json()
+                # Check if the response has a 'member' wrapper or is direct member data
+                if 'member' in data:
+                    return Member(**data['member'])
+                else:
+                    return Member(**data)
         # This line will never be reached due to stamina's retry logic
         raise RuntimeError('Retry exhausted')  # pragma: no cover
 
     async def get_subscriptions(
         self, member_id: Optional[int] = None, page: int = 1, per_page: int = 100
-    ) -> dict[str, Any]:
+    ) -> SubscriptionsResponse:
         """Get subscriptions, optionally for a specific member.
 
         Args:
@@ -154,16 +167,17 @@ class MemberfulClient:
             per_page: Number of subscriptions per page (default: 100)
 
         Returns:
-            Dictionary containing subscriptions data
+            SubscriptionsResponse containing subscriptions data with pagination info
         """
         params = {'page': page, 'per_page': per_page}
         if member_id:
             params['member_id'] = member_id
 
         response = await self._request('GET', '/v1/subscriptions', params=params)
-        return response.json()
+        data = response.json()
+        return SubscriptionsResponse(**data)
 
-    async def get_all_subscriptions(self, member_id: Optional[int] = None) -> list[dict[str, Any]]:
+    async def get_all_subscriptions(self, member_id: Optional[int] = None) -> list[Subscription]:
         """Get all subscriptions by iterating through all pages.
 
         This method automatically handles pagination by calling get_subscriptions()
@@ -174,15 +188,15 @@ class MemberfulClient:
             member_id: Optional member ID to filter subscriptions for specific member
 
         Returns:
-            List containing all subscription dictionaries
+            List containing all Subscription objects
         """
         per_page: int = 100
-        all_subscriptions: list[dict[str, Any]] = []
+        all_subscriptions: list[Subscription] = []
         page = 1
 
         while True:
             response = await self.get_subscriptions(member_id=member_id, page=page, per_page=per_page)
-            subscriptions = response.get('subscriptions', [])
+            subscriptions = response.subscriptions
 
             if not subscriptions:
                 break
