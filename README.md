@@ -20,13 +20,13 @@ A modern, type-safe Python SDK for integrating with [Memberful](https://memberfu
 ## 📦 Installation
 
 ```bash
-pip install memberful
+uv pip install memberful
 ```
 
-Or with Poetry:
+Or with uv project management:
 
 ```bash
-poetry add memberful
+uv add memberful
 ```
 
 ## 🚀 Quick Start
@@ -137,7 +137,7 @@ The SDK includes a comprehensive test suite. Run tests with:
 
 ```bash
 # Install dev dependencies
-pip install -e ".[dev]"
+uv pip install -e ".[dev]"
 
 # Run tests
 pytest
@@ -166,7 +166,7 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install in development mode
-pip install -e ".[dev]"
+uv pip install -e ".[dev]"
 
 # Run tests
 pytest
