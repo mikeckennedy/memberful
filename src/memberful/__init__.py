@@ -24,12 +24,12 @@ from .webhook_models import (
     SubscriptionUpdatedEvent,
     WebhookEvent,
 )
-from .webhooks import WebhookHandler, parse_webhook_payload
+from .webhooks import parse_webhook_payload, validate_webhook_signature
 
 __all__ = [
     'MemberfulClient',
-    'WebhookHandler',
     'parse_webhook_payload',
+    'validate_webhook_signature',
     'WebhookEvent',
     'MemberSignupEvent',
     'MemberUpdatedEvent',
