@@ -1,0 +1,9 @@
+# FastAPI and ASGI server
+fastapi
+uvicorn[standard]
+
+# HTTP client for testing
+httpx
+
+# The memberful package (install from parent directory)
+# pip install -e ../../
