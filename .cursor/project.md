@@ -35,18 +35,23 @@ reference/
 
 When working with webhooks, **ALWAYS** reference:
 
-1. **`reference/webhooks.md`** - Complete webhook reference with:
+1. **Official Documentation**: [Memberful Webhook Event Reference](https://memberful.com/help/custom-development-and-api/webhook-event-reference/)
+   - Authoritative source for all webhook event schemas
+   - Complete JSON examples for every webhook type
+   - Official event descriptions and trigger conditions
+
+2. **`reference/webhooks.md`** - Local webhook reference with:
    - JSON schemas for all Memberful webhook events
    - Corresponding Pydantic model names
    - Usage examples and import statements
    
-2. **`src/memberful/webhook_models.py`** - Type-safe Pydantic models for:
+3. **`src/memberful/webhook_models.py`** - Type-safe Pydantic models for:
    - All webhook event types (12+ models)
    - Supporting models (Member, Order, Product, etc.)
    - Enums for known values (SignupMethod, OrderStatus, etc.)
    - WebhookEvent union type for parsing
 
-3. **`src/memberful/webhooks.py`** - Webhook handler with:
+4. **`src/memberful/webhooks.py`** - Webhook handler with:
    - HMAC signature verification
    - Event-based handler registration
    - Decorator pattern for event handling
