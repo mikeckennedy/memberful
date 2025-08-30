@@ -1,4 +1,4 @@
-"""Tests for Pydantic models."""
+"""Tests for Pydantic webhook models."""
 
 import json
 

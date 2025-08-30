@@ -5,7 +5,7 @@ __author__ = 'Michael Kennedy'
 
 # Main exports
 from .client import MemberfulClient
-from .models import (
+from .webhook_models import (
     DownloadCreatedEvent,
     DownloadDeletedEvent,
     DownloadUpdatedEvent,

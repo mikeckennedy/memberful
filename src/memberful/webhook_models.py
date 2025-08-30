@@ -1,4 +1,10 @@
-"""Pydantic models for Memberful webhook payloads."""
+"""Pydantic models for parsing and validating Memberful webhook payloads.
+
+This module provides comprehensive type-safe models for all Memberful webhook events,
+including member signup, subscription changes, order updates, and plan modifications.
+All models are designed to be permissive with optional fields to handle real-world
+webhook data variations.
+"""
 
 from enum import Enum
 from typing import Any, Optional
