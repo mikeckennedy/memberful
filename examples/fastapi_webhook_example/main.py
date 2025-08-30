@@ -11,7 +11,7 @@ from datetime import datetime
 from fastapi import FastAPI, HTTPException, Request, status
 
 # Import the webhook models and parsing function from the memberful package
-from memberful import parse_webhook_payload
+from memberful import parse_payload
 from memberful.webhook_models import (
     DownloadCreatedEvent,
     DownloadDeletedEvent,
@@ -218,7 +218,7 @@ async def webhook_endpoint(request: Request):
 
         # Parse the webhook event using our models
         try:
-            webhook_event = parse_webhook_payload(payload)
+            webhook_event = parse_payload(payload)
             handle_webhook_event(webhook_event)
 
             return {'status': 'success', 'event_type': webhook_event.event, 'message': 'Webhook processed successfully'}

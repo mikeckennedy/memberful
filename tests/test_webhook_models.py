@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from memberful.webhook_models import (
+from memberful.webhooks import (
     Address,
     CreditCard,
     DownloadCreatedEvent,

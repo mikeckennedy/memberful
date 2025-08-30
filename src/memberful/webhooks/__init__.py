@@ -1,27 +1,59 @@
-"""Memberful webhook handling utilities."""
+"""Memberful webhook handling utilities and models.
+
+This module provides comprehensive webhook support for Memberful, including:
+- Webhook payload parsing and validation
+- Type-safe webhook event models
+- Signature verification utilities
+
+Usage:
+    import memberful.webhooks
+
+    # Parse webhook payload
+    event = memberful.webhooks.parse_webhook_payload(payload_dict)
+
+    # Validate webhook signature
+    is_valid = memberful.webhooks.validate_webhook_signature(raw_payload, signature, secret)
+
+    # Access models directly
+    member = memberful.webhooks.Member(id=123, email="test@example.com")
+"""
 
 import hashlib
 import hmac
 from typing import Any
 
-from .webhook_models import (
+from .models import (
+    Address,
+    CreditCard,
     DownloadCreatedEvent,
     DownloadDeletedEvent,
     DownloadUpdatedEvent,
+    IntervalUnit,
+    Member,
     MemberSignupEvent,
+    MemberSubscription,
     MemberUpdatedEvent,
+    Order,
     OrderCompletedEvent,
+    OrderStatus,
     OrderSuspendedEvent,
+    Product,
+    RenewalPeriod,
+    SignupMethod,
+    SubscriptionChanges,
     SubscriptionCreatedEvent,
+    SubscriptionPlan,
     SubscriptionPlanCreatedEvent,
     SubscriptionPlanDeletedEvent,
     SubscriptionPlanUpdatedEvent,
     SubscriptionUpdatedEvent,
+    TrackingParams,
+    WebhookBaseModel,
     WebhookEvent,
 )
 
 
-def parse_webhook_payload(payload: dict[str, Any]) -> WebhookEvent:
+def parse_payload(payload: dict[str, Any]) -> WebhookEvent:
     """Parse a webhook payload into the appropriate Pydantic model.
 
     This function takes a raw webhook payload dictionary and returns the appropriate
@@ -74,7 +106,7 @@ def parse_webhook_payload(payload: dict[str, Any]) -> WebhookEvent:
             raise ValueError(f'Unsupported event type: {event_type}')
 
 
-def validate_webhook_signature(payload: str, signature: str, secret_key: str) -> bool:
+def validate_signature(payload: str, signature: str, secret_key: str) -> bool:
     """Validate the webhook signature.
 
     Args:
@@ -91,3 +123,42 @@ def validate_webhook_signature(payload: str, signature: str, secret_key: str) ->
     expected_signature = hmac.new(secret_key.encode('utf-8'), payload.encode('utf-8'), hashlib.sha256).hexdigest()
 
     return hmac.compare_digest(expected_signature, signature)
+
+
+# Export all the models and functions for easy access
+__all__ = [
+    # Functions
+    'parse_payload',
+    'validate_signature',
+    # Base models and types
+    'WebhookBaseModel',
+    'WebhookEvent',
+    # Enums
+    'SignupMethod',
+    'OrderStatus',
+    'RenewalPeriod',
+    'IntervalUnit',
+    # Core models
+    'Address',
+    'CreditCard',
+    'TrackingParams',
+    'SubscriptionPlan',
+    'MemberSubscription',
+    'Product',
+    'Member',
+    'SubscriptionChanges',
+    'Order',
+    # Event models
+    'MemberSignupEvent',
+    'MemberUpdatedEvent',
+    'SubscriptionCreatedEvent',
+    'SubscriptionUpdatedEvent',
+    'OrderCompletedEvent',
+    'OrderSuspendedEvent',
+    'SubscriptionPlanCreatedEvent',
+    'SubscriptionPlanUpdatedEvent',
+    'SubscriptionPlanDeletedEvent',
+    'DownloadCreatedEvent',
+    'DownloadUpdatedEvent',
+    'DownloadDeletedEvent',
+]

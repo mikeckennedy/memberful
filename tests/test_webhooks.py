@@ -1,7 +1,7 @@
 """Tests for webhook handling functionality."""
 
 
-from memberful import MemberSignupEvent, parse_webhook_payload, validate_webhook_signature
+from memberful import MemberSignupEvent, parse_payload, validate_signature
 
 
 class TestWebhookFunctions:
@@ -19,7 +19,7 @@ class TestWebhookFunctions:
             },
         }
 
-        event = parse_webhook_payload(payload)
+        event = parse_payload(payload)
         assert isinstance(event, MemberSignupEvent)
         assert event.member.id == 12345
         assert event.member.email == 'test@example.com'
@@ -29,7 +29,7 @@ class TestWebhookFunctions:
         payload = {'event': 'unsupported_event', 'data': {}}
 
         try:
-            parse_webhook_payload(payload)
+            parse_payload(payload)
             assert False, 'Should have raised ValueError'
         except ValueError as e:
             assert 'Unsupported event type' in str(e)
@@ -46,10 +46,10 @@ class TestWebhookFunctions:
         expected_sig = hmac.new(secret_key.encode('utf-8'), payload.encode('utf-8'), hashlib.sha256).hexdigest()
 
         # Test without sha256= prefix
-        assert validate_webhook_signature(payload, expected_sig, secret_key) is True
+        assert validate_signature(payload, expected_sig, secret_key) is True
 
         # Test with sha256= prefix
-        assert validate_webhook_signature(payload, f'sha256={expected_sig}', secret_key) is True
+        assert validate_signature(payload, f'sha256={expected_sig}', secret_key) is True
 
     def test_validate_webhook_signature_invalid(self):
         """Test webhook signature validation with invalid signature."""
@@ -57,4 +57,4 @@ class TestWebhookFunctions:
         secret_key = 'test_secret'
         invalid_signature = 'invalid_signature'
 
-        assert validate_webhook_signature(payload, invalid_signature, secret_key) is False
+        assert validate_signature(payload, invalid_signature, secret_key) is False

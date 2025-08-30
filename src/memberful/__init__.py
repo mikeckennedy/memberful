@@ -4,8 +4,12 @@ __version__ = '0.1.0'
 __author__ = 'Michael Kennedy'
 
 # Main exports
+# Import webhooks submodule - this allows: import memberful.webhooks
+from . import webhooks
 from .client import MemberfulClient
-from .webhook_models import (
+
+# For backward compatibility, expose webhook functions at top level
+from .webhooks import (
     DownloadCreatedEvent,
     DownloadDeletedEvent,
     DownloadUpdatedEvent,
@@ -23,13 +27,15 @@ from .webhook_models import (
     SubscriptionPlanUpdatedEvent,
     SubscriptionUpdatedEvent,
     WebhookEvent,
+    parse_payload,
+    validate_signature,
 )
-from .webhooks import parse_webhook_payload, validate_webhook_signature
 
 __all__ = [
     'MemberfulClient',
-    'parse_webhook_payload',
-    'validate_webhook_signature',
+    'webhooks',  # Webhooks submodule
+    'parse_payload',
+    'validate_signature',
     'WebhookEvent',
     'MemberSignupEvent',
     'MemberUpdatedEvent',

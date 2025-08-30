@@ -6,8 +6,8 @@ from memberful import (
     MemberfulClient,
     MemberSignupEvent,
     SubscriptionCreatedEvent,
-    parse_webhook_payload,
-    validate_webhook_signature,
+    parse_payload,
+    validate_signature,
 )
 
 
@@ -49,12 +49,12 @@ def webhook_example():
     def process_webhook(payload: str, signature: str, secret_key: str):
         """Process an incoming webhook payload."""
         # 1. Validate the signature
-        if not validate_webhook_signature(payload, signature, secret_key):
+        if not validate_signature(payload, signature, secret_key):
             raise ValueError('Invalid webhook signature')
 
         # 2. Parse the payload into a strongly-typed event
         event_data = json.loads(payload)
-        webhook_event = parse_webhook_payload(event_data)
+        webhook_event = parse_payload(event_data)
 
         # 3. Route to appropriate handler using match statement
         match webhook_event:
