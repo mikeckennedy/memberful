@@ -124,7 +124,7 @@ class Member(APIBaseModel):
     full_name: Optional[str] = None
     username: Optional[str] = None
     phone_number: Optional[str] = None
-    created_at: int  # Unix timestamp
+    created_at: Optional[int] = None  # Unix timestamp
     updated_at: Optional[int] = None  # Unix timestamp
     signup_method: Optional[SignupMethod] = None
     stripe_customer_id: Optional[str] = None
