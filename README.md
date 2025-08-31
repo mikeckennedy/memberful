@@ -10,6 +10,7 @@ A modern, type-safe Python SDK for integrating with [Memberful](https://memberfu
 
 - **🔒 Type Safety**: Full Pydantic model coverage for all API responses and webhook events
 - **🚀 Async First**: Built on `httpx` for high-performance async operations
+- **⚡ GraphQL Powered**: Efficient data fetching with Memberful's GraphQL API
 - **🔄 Resilient**: Smart retry logic with exponential backoff handles network hiccups and rate limits automatically
 - **📝 Auto-Complete Heaven**: Comprehensive type hints mean your IDE knows exactly what's available
 - **🎯 Zero Guesswork**: No more digging through API docs to figure out response formats
@@ -127,10 +128,11 @@ Check out the [examples directory](examples/) for ready-to-run code:
 
 This SDK is built with modern Python best practices:
 
+- **GraphQL API** - leverages Memberful's GraphQL endpoint for efficient data fetching
 - **Async/await** for efficient I/O operations
 - **Pydantic v2** for fast data validation and serialization
 - **Type hints** throughout for better IDE support
-- **Minimal dependencies** - just `httpx` and `pydantic`
+- **Minimal dependencies** - just `httpx`, `pydantic`, and `stamina` for resilient retries
 - **100% test coverage** for reliability
 
 ## 🧪 Testing
@@ -189,7 +191,7 @@ This SDK is under active development and currently supports:
 - ✅ All webhook event types
 - ✅ Signature verification
 - ⏳ Member operations (create/update) - coming soon
-- ⏳ Direct GraphQL query support - coming soon
+- ✅ GraphQL API integration with automatic retries
 
 ## 📄 License
 
