@@ -52,12 +52,12 @@ async with MemberfulClient(api_key="your_api_key_here") as client:
 The `MemberfulClient` class accepts these parameters:
 
 - **`api_key`** (required): Your Memberful API key from Settings → Custom Applications
-- **`base_url`**: API base URL (default: `https://api.memberful.com`)
+- **`base_url`**: API base URL (default: `https://youraccount.memberful.com` - replace with your actual Memberful account)
 - **`timeout`**: Request timeout in seconds (default: 30.0)
 
 ## API Endpoint
 
-All requests go to: `https://api.memberful.com/api/graphql`
+All requests go to: `https://youraccount.memberful.com/api/graphql` (where "youraccount" is your actual Memberful account name)
 
 The API is fully GraphQL-based, using cursor-based pagination and proper GraphQL field names. All queries are sent as POST requests to the GraphQL endpoint with Bearer token authentication.
 

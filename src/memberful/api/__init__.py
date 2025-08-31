@@ -19,7 +19,7 @@ class MemberfulClientConfig(BaseModel):
     """Configuration for the Memberful client."""
 
     api_key: str
-    base_url: str = 'https://api.memberful.com'
+    base_url: str = 'https://youraccount.memberful.com'
     timeout: float = 30.0
 
 
@@ -27,7 +27,7 @@ class MemberfulClient:
     request_timeout_in_seconds: float = 20.0
     """Client for interacting with the Memberful API."""
 
-    def __init__(self, api_key: str, base_url: str = 'https://api.memberful.com', timeout: float = 30.0):
+    def __init__(self, api_key: str, base_url: str = 'https://youraccount.memberful.com', timeout: float = 30.0):
         """Initialize the Memberful client.
 
         Args:
