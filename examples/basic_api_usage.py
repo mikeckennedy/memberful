@@ -17,24 +17,24 @@ async def main():
     base_url = settings.get('base_url', 'https://youraccount.memberful.com')
 
     async with MemberfulClient(api_key=api_key, base_url=base_url) as client:
-        # Get list of members (now returns typed MembersResponse)
-        members_response = await client.get_members(page=1, per_page=10)
-        print(f'Found {len(members_response.members)} members')
+        # Get all members (convenience method that handles pagination automatically)
+        all_members = await client.get_all_members()
+        print(f'Found {len(all_members)} members')
 
         # Access member data with full type safety
-        for member in members_response.members:
+        for member in all_members:
             print(f'Member: {member.email} (ID: {member.id}, Name: {member.full_name})')
 
         # Get a specific member (replace with actual member ID)
         # member = await client.get_member(member_id=12345)
         # print(f"Member: {member.full_name} ({member.email})")
 
-        # Get subscriptions (now returns typed SubscriptionsResponse)
-        subscriptions_response = await client.get_subscriptions(page=1, per_page=10)
-        print(f'Found {len(subscriptions_response.subscriptions)} subscriptions')
+        # Get all subscriptions (convenience method that handles pagination automatically)
+        all_subscriptions = await client.get_all_subscriptions()
+        print(f'Found {len(all_subscriptions)} subscriptions')
 
         # Access subscription data with full type safety
-        for subscription in subscriptions_response.subscriptions:
+        for subscription in all_subscriptions:
             plan_name = subscription.plan.name if subscription.plan else 'Unknown'
             print(f'Subscription: {subscription.id} - Plan: {plan_name} (Active: {subscription.active})')
 

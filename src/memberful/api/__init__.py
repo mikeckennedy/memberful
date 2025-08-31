@@ -216,28 +216,100 @@ class MemberfulClient:
         raise RuntimeError('Retry exhausted')  # pragma: no cover
 
     async def get_all_members(self) -> list[Member]:
-        """Get all members by iterating through all pages.
+        """Get all members by iterating through all pages using cursor-based pagination.
 
-        This method automatically handles pagination by calling get_members()
-        repeatedly until all members are retrieved. Uses 100 members per page
-        for optimal performance.
+        This method automatically handles pagination by using GraphQL cursors
+        until all members are retrieved. Uses 100 members per page for optimal performance.
 
         Returns:
             List containing all Member objects
         """
         per_page: int = 100
         all_members: list[Member] = []
-        page = 1
+        cursor: Optional[str] = None
+        has_next_page = True
 
-        while True:
-            response = await self.get_members(page=page, per_page=per_page)
-            members = response.members
+        while has_next_page:
+            query = """
+            query GetMembers($first: Int!, $after: String) {
+                members(first: $first, after: $after) {
+                    edges {
+                        node {
+                            id
+                            email
+                            fullName
+                            username
+                            stripeCustomerId
+                            unrestrictedAccess
+                            address {
+                                city
+                                country
+                                state
+                                postalCode
+                                street
+                            }
+                            subscriptions {
+                                id
+                                active
+                                createdAt
+                                expiresAt
+                                trialEndAt
+                                plan {
+                                    id
+                                    name
+                                    intervalUnit
+                                    intervalCount
+                                    slug
+                                }
+                            }
+                        }
+                        cursor
+                    }
+                    pageInfo {
+                        hasNextPage
+                        hasPreviousPage
+                        startCursor
+                        endCursor
+                    }
+                }
+            }
+            """
 
-            if not members:
-                break
+            variables = {'first': per_page, 'after': cursor}
 
-            all_members.extend(members)
-            page += 1
+            async for attempt in stamina.retry_context(
+                on=(httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException, ValueError),
+                attempts=3,
+                timeout=self.request_timeout_in_seconds,
+            ):
+                with attempt:
+                    data = await self._graphql_request(query, variables)
+                    members_data = data.get('members', {})
+
+                    # Extract members from edges
+                    members: list[Member] = []
+                    if 'edges' in members_data:
+                        for edge in members_data['edges']:
+                            member_node: dict[str, Any] = edge['node']
+
+                            # Ensure subscriptions exist as a list
+                            if 'subscriptions' in member_node and member_node['subscriptions'] is None:
+                                member_node['subscriptions'] = []
+
+                            members.append(Member(**member_node))
+
+                    # Update pagination info
+                    page_info = members_data.get('pageInfo', {})
+                    has_next_page = page_info.get('hasNextPage', False)
+                    cursor = page_info.get('endCursor')
+
+                    # Add members to our collection
+                    all_members.extend(members)
+
+                    # Break if no more members
+                    if not members or not has_next_page:
+                        has_next_page = False
+                        break
 
             # Small delay to be respectful of API rate limits
             await asyncio.sleep(0.25)
@@ -449,11 +521,11 @@ class MemberfulClient:
         raise RuntimeError('Retry exhausted')  # pragma: no cover
 
     async def get_all_subscriptions(self, member_id: Optional[int] = None) -> list[Subscription]:
-        """Get all subscriptions by iterating through all pages.
+        """Get all subscriptions by iterating through all pages using cursor-based pagination.
 
-        This method automatically handles pagination by calling get_subscriptions()
-        repeatedly until all subscriptions are retrieved. Uses 100 subscriptions
-        per page for optimal performance.
+        This method automatically handles pagination by using GraphQL cursors
+        until all subscriptions are retrieved. Uses 100 subscriptions per page
+        for optimal performance.
 
         Args:
             member_id: Optional member ID to filter subscriptions for specific member
@@ -463,17 +535,121 @@ class MemberfulClient:
         """
         per_page: int = 100
         all_subscriptions: list[Subscription] = []
-        page = 1
+        cursor: Optional[str] = None
+        has_next_page = True
 
-        while True:
-            response = await self.get_subscriptions(member_id=member_id, page=page, per_page=per_page)
-            subscriptions = response.subscriptions
+        while has_next_page:
+            if member_id:
+                # Get subscriptions for specific member
+                query = """
+                query GetMemberSubscriptions($memberId: ID!, $first: Int!, $after: String) {
+                    member(id: $memberId) {
+                        subscriptions(first: $first, after: $after) {
+                            edges {
+                                node {
+                                    id
+                                    active
+                                    createdAt
+                                    expiresAt
+                                    trialEndAt
+                                    plan {
+                                        id
+                                        name
+                                        intervalUnit
+                                        intervalCount
+                                        slug
+                                    }
+                                    member {
+                                        id
+                                        email
+                                        fullName
+                                    }
+                                }
+                                cursor
+                            }
+                            pageInfo {
+                                hasNextPage
+                                hasPreviousPage
+                                startCursor
+                                endCursor
+                            }
+                        }
+                    }
+                }
+                """
+                variables = {'memberId': str(member_id), 'first': per_page, 'after': cursor}
+            else:
+                # Get all subscriptions
+                query = """
+                query GetAllSubscriptions($first: Int!, $after: String) {
+                    subscriptions(first: $first, after: $after) {
+                        edges {
+                            node {
+                                id
+                                active
+                                createdAt
+                                expiresAt
+                                trialEndAt
+                                plan {
+                                    id
+                                    name
+                                    intervalUnit
+                                    intervalCount
+                                    slug
+                                }
+                                member {
+                                    id
+                                    email
+                                    fullName
+                                }
+                            }
+                            cursor
+                        }
+                        pageInfo {
+                            hasNextPage
+                            hasPreviousPage
+                            startCursor
+                            endCursor
+                        }
+                    }
+                }
+                """
+                variables = {'first': per_page, 'after': cursor}
 
-            if not subscriptions:
-                break
+            async for attempt in stamina.retry_context(
+                on=(httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException, ValueError),
+                attempts=3,
+                timeout=self.request_timeout_in_seconds,
+            ):
+                with attempt:
+                    data = await self._graphql_request(query, variables)
 
-            all_subscriptions.extend(subscriptions)
-            page += 1
+                    if member_id:
+                        # Extract subscriptions from member query
+                        member_data = data.get('member', {})
+                        subscriptions_data = member_data.get('subscriptions', {})
+                    else:
+                        # Extract subscriptions from direct query
+                        subscriptions_data = data.get('subscriptions', {})
+
+                    # Extract subscriptions from edges
+                    subscriptions: list[Subscription] = []
+                    if 'edges' in subscriptions_data:
+                        for edge in subscriptions_data['edges']:
+                            subscriptions.append(Subscription(**edge['node']))
+
+                    # Update pagination info
+                    page_info = subscriptions_data.get('pageInfo', {})
+                    has_next_page = page_info.get('hasNextPage', False)
+                    cursor = page_info.get('endCursor')
+
+                    # Add subscriptions to our collection
+                    all_subscriptions.extend(subscriptions)
+
+                    # Break if no more subscriptions
+                    if not subscriptions or not has_next_page:
+                        has_next_page = False
+                        break
 
             # Small delay to be respectful of API rate limits
             await asyncio.sleep(0.25)
