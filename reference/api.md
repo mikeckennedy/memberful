@@ -2,6 +2,8 @@
 
 This document provides comprehensive documentation for the Memberful GraphQL API as implemented in our Python package. Based on the [official Memberful API documentation](https://memberful.com/help/custom-development-and-api/memberful-api/), this reference shows how to use the API through our `MemberfulClient` class.
 
+**✅ GraphQL Native Implementation**: This client now uses native GraphQL queries with cursor-based pagination, properly aligned with Memberful's actual GraphQL schema. All field names and structures match the real API endpoints.
+
 ## Type Safety with Pydantic Models
 
 Our API client returns fully typed Pydantic models instead of raw dictionaries, providing:
@@ -12,6 +14,16 @@ Our API client returns fully typed Pydantic models instead of raw dictionaries, 
 - **Easier Development**: Intuitive attribute access instead of dictionary keys
 
 All API responses are automatically parsed into strongly-typed models from `memberful.api.models`.
+
+## GraphQL Schema Alignment
+
+Our implementation uses the actual Memberful GraphQL schema with these key characteristics:
+
+- **Field Names**: Uses camelCase as per GraphQL conventions (e.g., `fullName`, `stripeCustomerId`, `unrestrictedAccess`)
+- **Cursor Pagination**: Implements proper GraphQL connection patterns with `edges`, `nodes`, and `pageInfo`
+- **Available Fields**: Only includes fields actually available in the schema (some fields like `createdAt` on Member, `signupMethod`, and `inTrialPeriod` are not available)
+- **Plan Structure**: Uses `intervalUnit` and `intervalCount` instead of `price` and `renewalPeriod`
+- **Address Fields**: Uses `street` instead of separate `addressLine1`/`addressLine2` fields
 
 ## Getting Started
 
@@ -45,9 +57,9 @@ The `MemberfulClient` class accepts these parameters:
 
 ## API Endpoint
 
-All requests go to: `https://ACCOUNT-URL.memberful.com/api/graphql`
+All requests go to: `https://api.memberful.com/api/graphql`
 
-**Note**: The current implementation uses a REST-like interface (`https://api.memberful.com`) but Memberful's actual API is GraphQL-based. Future versions may align more closely with the GraphQL endpoint pattern.
+The API is fully GraphQL-based, using cursor-based pagination and proper GraphQL field names. All queries are sent as POST requests to the GraphQL endpoint with Bearer token authentication.
 
 ## Authentication
 
@@ -73,29 +85,44 @@ Retrieve a paginated list of all members.
 
 **GraphQL Equivalent**:
 ```graphql
-query {
-  members(first: 100, after: "cursor") {
+query GetMembers($first: Int!, $after: String) {
+  members(first: $first, after: $after) {
     edges {
       node {
         id
-        fullName
         email
-        createdAt
+        fullName
+        username
+        stripeCustomerId
+        unrestrictedAccess
+        address {
+          city
+          country
+          state
+          postalCode
+          street
+        }
         subscriptions {
-          edges {
-            node {
-              id
-              plan {
-                id
-                name
-              }
-            }
+          id
+          active
+          createdAt
+          expiresAt
+          trialEndAt
+          plan {
+            id
+            name
+            intervalUnit
+            intervalCount
+            slug
           }
         }
       }
+      cursor
     }
     pageInfo {
       hasNextPage
+      hasPreviousPage
+      startCursor
       endCursor
     }
   }
@@ -117,13 +144,17 @@ async with MemberfulClient(api_key="your_key") as client:
     
     for member in response.members:
         print(f"Member: {member.email} (ID: {member.id})")
-        print(f"Name: {member.full_name}, Joined: {member.created_at}")
+        print(f"Name: {member.full_name or 'No name'}")
+        if member.stripe_customer_id:
+            print(f"Stripe ID: {member.stripe_customer_id}")
         
         # Access nested subscription data if available
         if member.subscriptions:
             for subscription in member.subscriptions:
                 plan_name = subscription.plan.name if subscription.plan else 'Unknown'
                 print(f"  Subscription: {plan_name} (Active: {subscription.active})")
+                if subscription.plan and subscription.plan.interval_unit:
+                    print(f"    Billing: {subscription.plan.interval_count} {subscription.plan.interval_unit}")
 ```
 
 ### Get Individual Member
@@ -136,24 +167,33 @@ Retrieve detailed information about a specific member.
 
 **GraphQL Equivalent**:
 ```graphql
-query {
-  member(id: 123) {
+query GetMember($id: ID!) {
+  member(id: $id) {
     id
-    fullName
     email
-    createdAt
+    fullName
+    username
+    stripeCustomerId
+    unrestrictedAccess
+    address {
+      city
+      country
+      state
+      postalCode
+      street
+    }
     subscriptions {
-      edges {
-        node {
-          id
-          active
-          expiresAt
-          plan {
-            id
-            name
-            price
-          }
-        }
+      id
+      active
+      createdAt
+      expiresAt
+      trialEndAt
+      plan {
+        id
+        name
+        intervalUnit
+        intervalCount
+        slug
       }
     }
   }
@@ -169,9 +209,10 @@ async with MemberfulClient(api_key="your_key") as client:
     # Returns Member object with full type safety
     member = await client.get_member(member_id=12345)
     
-    print(f"Member: {member.full_name} ({member.email})")
-    print(f"Joined: {member.created_at}")
-    print(f"Username: {member.username}")
+    print(f"Member: {member.full_name or 'No name'} ({member.email})")
+    print(f"Username: {member.username or 'No username'}")
+    if member.stripe_customer_id:
+        print(f"Stripe Customer ID: {member.stripe_customer_id}")
     
     # Access address information if available
     if member.address:
@@ -203,11 +244,13 @@ async with MemberfulClient(api_key="your_key") as client:
     print(f"Total members: {len(all_members)}")
     for member in all_members:
         print(f"Member: {member.email} (ID: {member.id})")
-        print(f"Signup method: {member.signup_method}")
+        print(f"Name: {member.full_name or 'No name'}")
         
         # Type-safe access to all member attributes
         if member.stripe_customer_id:
             print(f"Stripe ID: {member.stripe_customer_id}")
+        if member.unrestricted_access:
+            print(f"Has unrestricted access: {member.unrestricted_access}")
 ```
 
 **Key Features**:
@@ -232,29 +275,34 @@ Retrieve subscriptions, optionally filtered by member.
 
 **GraphQL Equivalent**:
 ```graphql
-query {
-  subscriptions(first: 100, after: "cursor") {
+query GetAllSubscriptions($first: Int!, $after: String) {
+  subscriptions(first: $first, after: $after) {
     edges {
       node {
         id
         active
         createdAt
         expiresAt
-        member {
-          id
-          fullName
-          email
-        }
+        trialEndAt
         plan {
           id
           name
-          price
-          renewalPeriod
+          intervalUnit
+          intervalCount
+          slug
+        }
+        member {
+          id
+          email
+          fullName
         }
       }
+      cursor
     }
     pageInfo {
       hasNextPage
+      hasPreviousPage
+      startCursor
       endCursor
     }
   }
@@ -278,15 +326,19 @@ async with MemberfulClient(api_key="your_key") as client:
     for subscription in member_subs.subscriptions:
         # Type-safe access to subscription and plan data
         if subscription.plan:
-            price_dollars = subscription.plan.price / 100
-            print(f"Plan: {subscription.plan.name} - ${price_dollars:.2f}")
-            print(f"Renewal: {subscription.plan.renewal_period}")
+            print(f"Plan: {subscription.plan.name}")
+            if subscription.plan.interval_unit and subscription.plan.interval_count:
+                print(f"Billing: {subscription.plan.interval_count} {subscription.plan.interval_unit}")
+            print(f"Slug: {subscription.plan.slug}")
         
         print(f"Active: {subscription.active}")
-        print(f"Created: {subscription.created_at}")
+        if subscription.created_at:
+            print(f"Created: {subscription.created_at}")
         
         if subscription.expires_at:
             print(f"Expires: {subscription.expires_at}")
+        if subscription.trial_end_at:
+            print(f"Trial ends: {subscription.trial_end_at}")
 ```
 
 ### Get All Subscriptions (Convenience Method)
@@ -318,7 +370,7 @@ async with MemberfulClient(api_key="your_key") as client:
         print(f"{plan_info} - Active: {subscription.active}")
         
         # Access all subscription attributes with autocomplete
-        if subscription.in_trial_period:
+        if subscription.trial_end_at:
             print(f"  Trial ends: {subscription.trial_end_at}")
 ```
 
@@ -453,7 +505,7 @@ async with MemberfulClient(api_key="your_key") as client:
     
     while True:
         response = await client.get_members(page=page, per_page=100)
-        members = response.get("members", [])
+        members = response.members  # Access typed members list
         
         if not members:
             break
@@ -480,12 +532,11 @@ member = Member(
     id=12345,
     email="john@example.com",
     full_name="John Doe",
-    created_at=1756245496,
+    username="johndoe",
     stripe_customer_id="cus_12345",
-    signup_method="checkout",
     unrestricted_access=False,
     # Optional nested objects
-    address=Address(city="San Francisco", country="US"),
+    address=Address(city="San Francisco", country="US", state="CA", postal_code="94105", street="123 Main St"),
     subscriptions=[...],  # List of Subscription objects
     custom_fields={"company": "Acme Corp"}
 )
@@ -505,19 +556,20 @@ subscription = Subscription(
     active=True,
     created_at=1756245496,
     expires_at=1758837496,
-    in_trial_period=False,
+    trial_end_at=None,
     plan=Plan(
         id=1,
         name="Premium Plan",
-        price=2999,  # Price in cents
-        renewal_period="monthly",
+        interval_unit="month",  # Available field
+        interval_count=1,       # Available field
         slug="premium"
     )
 )
 
 # Type-safe access to all fields
-print(f"${subscription.plan.price / 100:.2f}")
-print(subscription.plan.renewal_period)  # Enum with validation
+if subscription.plan:
+    print(f"Plan: {subscription.plan.name}")
+    print(f"Billing: {subscription.plan.interval_count} {subscription.plan.interval_unit}")  # Actual available fields
 ```
 
 #### Response Models
@@ -542,29 +594,29 @@ print(f"Page {response.current_page} of {response.total_pages}")
 ## Limitations and Future Enhancements
 
 ### Current Limitations
-- **REST-like Interface**: Current client uses REST-style endpoints rather than native GraphQL
 - **Limited Operations**: Only supports read operations (queries), no mutations yet
+- **Schema Restrictions**: Some fields like `createdAt`, `signupMethod`, and `inTrialPeriod` are not available in the current GraphQL schema
+- **Pagination Metadata**: Total count information is estimated based on `hasNextPage` rather than exact counts
 - **No Custom Fields**: Custom field data access not yet implemented
-- **Basic Pagination**: Simple page-based pagination instead of cursor-based
 
 ### Planned Enhancements
-- **GraphQL Native**: Direct GraphQL query support with full flexibility
 - **Mutation Support**: Create, update, and delete operations
 - **Advanced Filtering**: Complex query filters and sorting
 - **Custom Fields API**: Access to new custom fields architecture
-- **Cursor Pagination**: More efficient cursor-based pagination
+- **Direct GraphQL**: Raw GraphQL query support for advanced use cases
 - **Bulk Operations**: Batch create/update operations
+- **Schema Updates**: Support for additional fields as they become available in the API
 
 ## Available Models
 
 All models are available from `memberful.api.models`:
 
 ### Core Models
-- `Member` - Complete member information
-- `Subscription` - Subscription details with plan relationships
-- `Plan` - Subscription plan information (price, renewal, etc.)
+- `Member` - Complete member information (email, fullName, username, stripeCustomerId, etc.)
+- `Subscription` - Subscription details with plan relationships (active, createdAt, expiresAt, trialEndAt)
+- `Plan` - Subscription plan information (name, intervalUnit, intervalCount, slug)
 - `Product` - Download/product details
-- `Address` - Member address information
+- `Address` - Member address information (city, country, state, postalCode, street)
 - `CreditCard` - Payment method information
 - `TrackingParams` - UTM tracking parameters
 

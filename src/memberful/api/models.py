@@ -58,13 +58,13 @@ class Plan(APIBaseModel):
     name: str
     price: int  # Price in smallest currency unit (cents)
     slug: Optional[str] = None
-    renewal_period: Optional[RenewalPeriod] = None
-    interval_unit: Optional[IntervalUnit] = None
-    interval_count: Optional[int] = None
-    for_sale: Optional[bool] = None
+    renewal_period: Optional[RenewalPeriod] = Field(None, alias='renewalPeriod')
+    interval_unit: Optional[IntervalUnit] = Field(None, alias='intervalUnit')
+    interval_count: Optional[int] = Field(None, alias='intervalCount')
+    for_sale: Optional[bool] = Field(None, alias='forSale')
     description: Optional[str] = None
-    created_at: Optional[int] = None  # Unix timestamp
-    updated_at: Optional[int] = None  # Unix timestamp
+    created_at: Optional[int] = Field(None, alias='createdAt')  # Unix timestamp
+    updated_at: Optional[int] = Field(None, alias='updatedAt')  # Unix timestamp
 
 
 class Subscription(APIBaseModel):
@@ -72,17 +72,17 @@ class Subscription(APIBaseModel):
 
     id: int
     active: bool
-    created_at: int  # Unix timestamp
+    created_at: int = Field(alias='createdAt')  # Unix timestamp
     expires: Optional[bool] = None
-    expires_at: Optional[int] = None  # Unix timestamp
+    expires_at: Optional[int] = Field(None, alias='expiresAt')  # Unix timestamp
     plan: Optional[Plan] = None
-    in_trial_period: Optional[bool] = None
-    trial_end_at: Optional[int] = None  # Unix timestamp
-    trial_start_at: Optional[int] = None  # Unix timestamp
+    in_trial_period: Optional[bool] = Field(None, alias='inTrialPeriod')
+    trial_end_at: Optional[int] = Field(None, alias='trialEndAt')  # Unix timestamp
+    trial_start_at: Optional[int] = Field(None, alias='trialStartAt')  # Unix timestamp
     autorenew: Optional[bool] = None
-    member_id: Optional[int] = None
-    coupon_code: Optional[str] = None
-    updated_at: Optional[int] = None  # Unix timestamp
+    member_id: Optional[int] = Field(None, alias='memberId')
+    coupon_code: Optional[str] = Field(None, alias='couponCode')
+    updated_at: Optional[int] = Field(None, alias='updatedAt')  # Unix timestamp
 
 
 class Address(APIBaseModel):
@@ -91,7 +91,7 @@ class Address(APIBaseModel):
     street: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
-    postal_code: Optional[str] = None
+    postal_code: Optional[str] = Field(None, alias='postalCode')
     country: Optional[str] = None
 
 
@@ -119,19 +119,19 @@ class Member(APIBaseModel):
 
     id: int
     email: str
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    full_name: Optional[str] = None
+    first_name: Optional[str] = Field(None, alias='firstName')
+    last_name: Optional[str] = Field(None, alias='lastName')
+    full_name: Optional[str] = Field(None, alias='fullName')
     username: Optional[str] = None
-    phone_number: Optional[str] = None
-    created_at: Optional[int] = None  # Unix timestamp
-    updated_at: Optional[int] = None  # Unix timestamp
-    signup_method: Optional[SignupMethod] = None
-    stripe_customer_id: Optional[str] = None
-    discord_user_id: Optional[str] = None
-    unrestricted_access: Optional[bool] = None
+    phone_number: Optional[str] = Field(None, alias='phoneNumber')
+    created_at: Optional[int] = Field(None, alias='createdAt')  # Unix timestamp
+    updated_at: Optional[int] = Field(None, alias='updatedAt')  # Unix timestamp
+    signup_method: Optional[SignupMethod] = Field(None, alias='signupMethod')
+    stripe_customer_id: Optional[str] = Field(None, alias='stripeCustomerId')
+    discord_user_id: Optional[str] = Field(None, alias='discordUserId')
+    unrestricted_access: Optional[bool] = Field(None, alias='unrestrictedAccess')
     deactivated: Optional[bool] = None
-    confirmed_at: Optional[int] = None  # Unix timestamp
+    confirmed_at: Optional[int] = Field(None, alias='confirmedAt')  # Unix timestamp
 
     # Nested objects
     address: Optional[Address] = None
