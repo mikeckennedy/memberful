@@ -80,6 +80,34 @@ class MemberfulClient:
         response.raise_for_status()
         return response
 
+    async def _graphql_request(self, query: str, variables: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+        """Make a GraphQL request to the Memberful API.
+
+        Args:
+            query: GraphQL query string
+            variables: Optional variables for the query
+
+        Returns:
+            Response data from GraphQL API
+        """
+        client = await self._ensure_client()
+
+        payload: dict[str, Any] = {'query': query}
+        if variables:
+            payload['variables'] = variables
+
+        response = await client.post('/api/graphql', json=payload)
+        response.raise_for_status()
+
+        data = response.json()
+
+        # Check for GraphQL errors
+        if 'errors' in data:
+            error_messages = [error['message'] for error in data['errors']]
+            raise ValueError(f'GraphQL errors: {", ".join(error_messages)}')
+
+        return data.get('data', {})
+
     async def get_members(self, page: int = 1, per_page: int = 100) -> MembersResponse:
         """Get list of members.
 
@@ -90,15 +118,97 @@ class MemberfulClient:
         Returns:
             MembersResponse containing members data with pagination info
         """
-        async for attempt in stamina.retry_async(  # type: ignore[misc]
-            on=(httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException),
+        # Calculate offset for GraphQL pagination
+        offset = (page - 1) * per_page
+
+        query = """
+        query GetMembers($first: Int!, $offset: Int!) {
+            members(first: $first, offset: $offset) {
+                edges {
+                    node {
+                        id
+                        email
+                        fullName
+                        username
+                        createdAt
+                        stripeCustomerId
+                        signupMethod
+                        unrestrictedAccess
+                        address {
+                            city
+                            country
+                            state
+                            postalCode
+                            addressLine1
+                            addressLine2
+                        }
+                        subscriptions {
+                            edges {
+                                node {
+                                    id
+                                    active
+                                    createdAt
+                                    expiresAt
+                                    inTrialPeriod
+                                    trialEndAt
+                                    plan {
+                                        id
+                                        name
+                                        price
+                                        renewalPeriod
+                                        slug
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                pageInfo {
+                    hasNextPage
+                    hasPreviousPage
+                }
+                totalCount
+            }
+        }
+        """
+
+        variables = {'first': per_page, 'offset': offset}
+
+        async for attempt in stamina.retry_context(
+            on=(httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException, ValueError),
             attempts=3,
             timeout=self.request_timeout_in_seconds,
         ):
-            with attempt:  # type: ignore[misc]
-                response = await self._request('GET', '/v1/members', params={'page': page, 'per_page': per_page})
-                data = response.json()
-                return MembersResponse(**data)
+            with attempt:
+                data = await self._graphql_request(query, variables)
+                members_data = data.get('members', {})
+
+                # Transform GraphQL response to match our expected format
+                members: list[dict[str, Any]] = []
+                if 'edges' in members_data:
+                    for edge in members_data['edges']:
+                        member_node: dict[str, Any] = edge['node']
+
+                        # Transform subscriptions if present
+                        if 'subscriptions' in member_node and member_node['subscriptions']:
+                            subscription_edges = member_node['subscriptions'].get('edges', [])
+                            member_node['subscriptions'] = [sub_edge['node'] for sub_edge in subscription_edges]
+
+                        members.append(member_node)
+
+                # Create response with pagination info
+                total_count: int = members_data.get('totalCount', 0)
+                total_pages: int = (total_count + per_page - 1) // per_page if total_count > 0 else 1
+
+                response_data: dict[str, Any] = {
+                    'members': members,
+                    'total_count': total_count,
+                    'total_pages': total_pages,
+                    'current_page': page,
+                    'per_page': per_page,
+                }
+
+                return MembersResponse(**response_data)
         # This line will never be reached due to stamina's retry logic
         raise RuntimeError('Retry exhausted')  # pragma: no cover
 
@@ -140,19 +250,68 @@ class MemberfulClient:
         Returns:
             Member object containing member data
         """
-        async for attempt in stamina.retry_async(  # type: ignore[misc]
-            on=(httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException),
+        query = """
+        query GetMember($id: ID!) {
+            member(id: $id) {
+                id
+                email
+                fullName
+                username
+                createdAt
+                stripeCustomerId
+                signupMethod
+                unrestrictedAccess
+                address {
+                    city
+                    country
+                    state
+                    postalCode
+                    addressLine1
+                    addressLine2
+                }
+                subscriptions {
+                    edges {
+                        node {
+                            id
+                            active
+                            createdAt
+                            expiresAt
+                            inTrialPeriod
+                            trialEndAt
+                            plan {
+                                id
+                                name
+                                price
+                                renewalPeriod
+                                slug
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        """
+
+        variables = {'id': str(member_id)}
+
+        async for attempt in stamina.retry_context(
+            on=(httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException, ValueError),
             attempts=3,
             timeout=self.request_timeout_in_seconds,
         ):
-            with attempt:  # type: ignore[misc]
-                response = await self._request('GET', f'/v1/members/{member_id}')
-                data = response.json()
-                # Check if the response has a 'member' wrapper or is direct member data
-                if 'member' in data:
-                    return Member(**data['member'])
-                else:
-                    return Member(**data)
+            with attempt:
+                data = await self._graphql_request(query, variables)
+                member_data = data.get('member')
+
+                if not member_data:
+                    raise ValueError(f'Member with ID {member_id} not found')
+
+                # Transform subscriptions if present
+                if 'subscriptions' in member_data and member_data['subscriptions']:
+                    subscription_edges = member_data['subscriptions'].get('edges', [])
+                    member_data['subscriptions'] = [sub_edge['node'] for sub_edge in subscription_edges]
+
+                return Member(**member_data)
         # This line will never be reached due to stamina's retry logic
         raise RuntimeError('Retry exhausted')  # pragma: no cover
 
@@ -169,13 +328,121 @@ class MemberfulClient:
         Returns:
             SubscriptionsResponse containing subscriptions data with pagination info
         """
-        params = {'page': page, 'per_page': per_page}
-        if member_id:
-            params['member_id'] = member_id
+        # Calculate offset for GraphQL pagination
+        offset = (page - 1) * per_page
 
-        response = await self._request('GET', '/v1/subscriptions', params=params)
-        data = response.json()
-        return SubscriptionsResponse(**data)
+        if member_id:
+            # Get subscriptions for specific member
+            query = """
+            query GetMemberSubscriptions($memberId: ID!, $first: Int!, $offset: Int!) {
+                member(id: $memberId) {
+                    subscriptions(first: $first, offset: $offset) {
+                        edges {
+                            node {
+                                id
+                                active
+                                createdAt
+                                expiresAt
+                                inTrialPeriod
+                                trialEndAt
+                                plan {
+                                    id
+                                    name
+                                    price
+                                    renewalPeriod
+                                    slug
+                                }
+                                member {
+                                    id
+                                    email
+                                    fullName
+                                }
+                            }
+                        }
+                        pageInfo {
+                            hasNextPage
+                            hasPreviousPage
+                        }
+                        totalCount
+                    }
+                }
+            }
+            """
+            variables = {'memberId': str(member_id), 'first': per_page, 'offset': offset}
+        else:
+            # Get all subscriptions
+            query = """
+            query GetAllSubscriptions($first: Int!, $offset: Int!) {
+                subscriptions(first: $first, offset: $offset) {
+                    edges {
+                        node {
+                            id
+                            active
+                            createdAt
+                            expiresAt
+                            inTrialPeriod
+                            trialEndAt
+                            plan {
+                                id
+                                name
+                                price
+                                renewalPeriod
+                                slug
+                            }
+                            member {
+                                id
+                                email
+                                fullName
+                            }
+                        }
+                    }
+                    pageInfo {
+                        hasNextPage
+                        hasPreviousPage
+                    }
+                    totalCount
+                }
+            }
+            """
+            variables = {'first': per_page, 'offset': offset}
+
+        async for attempt in stamina.retry_context(
+            on=(httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException, ValueError),
+            attempts=3,
+            timeout=self.request_timeout_in_seconds,
+        ):
+            with attempt:
+                data = await self._graphql_request(query, variables)
+
+                if member_id:
+                    # Extract subscriptions from member query
+                    member_data = data.get('member', {})
+                    subscriptions_data = member_data.get('subscriptions', {})
+                else:
+                    # Extract subscriptions from direct query
+                    subscriptions_data = data.get('subscriptions', {})
+
+                # Transform GraphQL response to match our expected format
+                subscriptions: list[dict[str, Any]] = []
+                if 'edges' in subscriptions_data:
+                    for edge in subscriptions_data['edges']:
+                        subscriptions.append(edge['node'])
+
+                # Create response with pagination info
+                total_count: int = subscriptions_data.get('totalCount', 0)
+                total_pages: int = (total_count + per_page - 1) // per_page if total_count > 0 else 1
+
+                response_data: dict[str, Any] = {
+                    'subscriptions': subscriptions,
+                    'total_count': total_count,
+                    'total_pages': total_pages,
+                    'current_page': page,
+                    'per_page': per_page,
+                }
+
+                return SubscriptionsResponse(**response_data)
+        # This line will never be reached due to stamina's retry logic
+        raise RuntimeError('Retry exhausted')  # pragma: no cover
 
     async def get_all_subscriptions(self, member_id: Optional[int] = None) -> list[Subscription]:
         """Get all subscriptions by iterating through all pages.

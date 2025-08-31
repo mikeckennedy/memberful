@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed `AttributeError: module stamina has no attribute retry_async` by updating to use correct `stamina.retry_context()` API
+
 ### Added
 - **Async Memberful API client** (`memberful.api.MemberfulClient`)
   - Support for common endpoints: members, subscriptions with full pagination

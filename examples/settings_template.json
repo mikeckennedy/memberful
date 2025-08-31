@@ -1,0 +1,5 @@
+{
+    "api_key": "",
+    "base_url": "",
+    "secrets_comment": "COPY THIS TO settings.json and enter your actual API key there (NOT IN THIS FILE), exclude this from github."
+}

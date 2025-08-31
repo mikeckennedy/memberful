@@ -1,16 +1,22 @@
 """Basic API usage examples for the memberful package."""
 
 import asyncio
+import json
 
 from memberful.api import MemberfulClient
 
 
 async def main():
     """Example usage of the Memberful client."""
-    # Initialize the client with your API key
-    api_key = 'your_memberful_api_key_here'
+    # Initialize the client with your API key and account URL
+    settings: dict[str, str] = json.load(open('./settings.json'))
+    api_key = settings['api_key']
+    
+    # IMPORTANT: Replace 'youraccount' with your actual Memberful account name
+    # Your Memberful URL is typically https://youraccount.memberful.com
+    base_url = settings.get('base_url', 'https://youraccount.memberful.com')
 
-    async with MemberfulClient(api_key=api_key) as client:
+    async with MemberfulClient(api_key=api_key, base_url=base_url) as client:
         # Get list of members (now returns typed MembersResponse)
         members_response = await client.get_members(page=1, per_page=10)
         print(f'Found {len(members_response.members)} members')
