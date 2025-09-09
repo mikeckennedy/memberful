@@ -74,9 +74,7 @@ class TestWebhookFunctions:
             'event': 'member.deleted',
             'member': {
                 'id': 12345,
-                'email': 'test@example.com',
-                'full_name': 'Test User',
-                'created_at': 1640995200,
+                'deleted': True,
             },
             'products': [],
             'subscriptions': [],
@@ -85,7 +83,7 @@ class TestWebhookFunctions:
         event = parse_payload(payload)
         assert isinstance(event, MemberDeletedEvent)
         assert event.member.id == 12345
-        assert event.member.email == 'test@example.com'
+        assert event.member.deleted is True
 
     def test_parse_webhook_payload_subscription_activated(self):
         """Test parsing a subscription activated webhook payload."""

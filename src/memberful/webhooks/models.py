@@ -151,6 +151,15 @@ class Member(WebhookBaseModel):
     custom_field: Optional[Any] = None
 
 
+class DeletedMember(WebhookBaseModel):
+    """Minimal member information for deleted member events."""
+
+    id: int
+    deleted: bool = True
+    # Note: email, created_at, and other fields are not included
+    # in member.deleted events as the member data is no longer available
+
+
 class SubscriptionChanges(WebhookBaseModel):
     """Changes made to a subscription (for subscription.updated events)."""
 
@@ -275,7 +284,7 @@ class MemberDeletedEvent(WebhookBaseModel):
     """member.deleted webhook event."""
 
     event: str = Field(..., pattern=r'^member\.deleted$')
-    member: Member
+    member: DeletedMember
     products: list[Product] = Field(default_factory=list)
     subscriptions: list[MemberSubscription] = Field(default_factory=list)
 

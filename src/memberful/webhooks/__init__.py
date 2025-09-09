@@ -25,6 +25,7 @@ from typing import Any
 from .models import (
     Address,
     CreditCard,
+    DeletedMember,
     DownloadCreatedEvent,
     DownloadDeletedEvent,
     DownloadUpdatedEvent,
@@ -158,6 +159,7 @@ __all__ = [
     'MemberSubscription',
     'Product',
     'Member',
+    'DeletedMember',
     'SubscriptionChanges',
     'Order',
     # Event models

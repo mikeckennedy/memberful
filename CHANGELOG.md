@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed `AttributeError: module stamina has no attribute retry_async` by updating to use correct `stamina.retry_context()` API
+- **CRITICAL FIX**: Fixed `member.deleted` webhook parsing to match Memberful's actual payload structure
+  - Created `DeletedMember` model for minimal member data (only `id` and `deleted` fields)
+  - Updated `MemberDeletedEvent` to use `DeletedMember` instead of full `Member` model
+  - Resolves validation errors when receiving `member.deleted` webhooks from Memberful
 
 ### Added
 - **Async Memberful API client** (`memberful.api.MemberfulClient`)

@@ -28,7 +28,8 @@ def handle_subscription_created(event: SubscriptionCreatedEvent):
 
 def handle_member_deleted(event: MemberDeletedEvent):
     """Handle member deleted events."""
-    print(f'Member deleted: {event.member.email} (ID: {event.member.id})')
+    print(f'Member deleted: ID {event.member.id} (deleted: {event.member.deleted})')
+    # Note: Only member ID and deleted flag are available, full member data is not included
     # Add your custom logic here (cleanup, analytics, etc.)
 
 

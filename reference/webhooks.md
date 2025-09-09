@@ -11,6 +11,7 @@ from memberful.webhooks import (
     MemberSignupEvent,
     MemberUpdatedEvent,
     MemberDeletedEvent,
+    DeletedMember,  # Special model for deleted member events
     SubscriptionCreatedEvent,
     SubscriptionUpdatedEvent,
     SubscriptionActivatedEvent,
@@ -146,41 +147,14 @@ Triggered when a member account is deleted.
 
 **Pydantic Model:** `MemberDeletedEvent`
 
+**Note:** When a member is deleted, Memberful only sends minimal member information (just the ID and deleted flag), as the full member data is no longer available.
+
 ```json
 {
   "event": "member.deleted",
   "member": {
-    "address": {
-      "street": "Street",
-      "city": "City",
-      "state": "State",
-      "postal_code": "Postal code",
-      "country": "City"
-    },
-    "created_at": 1756245496,
-    "credit_card": {
-      "exp_month": 1,
-      "exp_year": 2040
-    },
-    "custom_field": "Custom field value",
-    "discord_user_id": "000000000000000000",
-    "email": "john.doe@example.com",
-    "first_name": "John",
-    "full_name": "John Doe",
-    "id": 0,
-    "last_name": "Doe",
-    "phone_number": "555-12345",
-    "signup_method": "checkout",
-    "stripe_customer_id": "cus_00000",
-    "tracking_params": {
-      "utm_term": "shoes",
-      "utm_campaign": "summer_sale",
-      "utm_medium": "social",
-      "utm_source": "instagram",
-      "utm_content": "textlink"
-    },
-    "unrestricted_access": false,
-    "username": "john_doe"
+    "id": 12345,
+    "deleted": true
   },
   "products": [],
   "subscriptions": []
