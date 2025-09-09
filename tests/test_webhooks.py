@@ -5,6 +5,7 @@ from typing import Any
 from memberful.webhooks import (
     MemberDeletedEvent,
     MemberSignupEvent,
+    OrderCompletedEvent,
     SubscriptionActivatedEvent,
     SubscriptionDeletedEvent,
     SubscriptionRenewedEvent,
@@ -158,3 +159,54 @@ class TestWebhookFunctions:
         assert event.member is None  # No member data in subscription events
         assert len(event.subscriptions) == 1
         assert event.subscriptions[0].expires_at == 1675123200
+
+    def test_parse_webhook_payload_order_completed_minimal_subscription_data(self):
+        """Test parsing an order completed webhook with minimal subscription data."""
+        # This test replicates the real-world scenario where subscription plan
+        # data may be missing price and renewal_period fields
+        payload = {
+            'event': 'order.completed',
+            'order': {
+                'uuid': '4DACB7B0-B728-0130-F9E8-102B343DC979',
+                'number': '4DACB7B0',
+                'total': 9900,
+                'status': 'completed',
+                'receipt': 'receipt text',
+                'member': {
+                    'id': 12345,
+                    'email': 'test@example.com',
+                    'created_at': 1640995200,
+                },
+                'products': [],
+                'subscriptions': [
+                    {
+                        'active': True,
+                        'created_at': 1640995200,
+                        'expires': True,
+                        'expires_at': 1672531200,
+                        'id': 67890,
+                        'subscription': {
+                            'id': 0,
+                            'name': 'Sample plan',
+                            'slug': '0-sample-plan',
+                            'type': 'standard_plan',
+                            # Note: price and renewal_period are missing as in the real error
+                        },
+                    }
+                ],
+            },
+        }
+
+        event = parse_payload(payload)
+        assert isinstance(event, OrderCompletedEvent)
+        assert event.order.uuid == '4DACB7B0-B728-0130-F9E8-102B343DC979'
+        assert event.order.member.id == 12345
+        assert len(event.order.subscriptions) == 1
+
+        # Test that the subscription plan handles missing optional fields
+        subscription_plan = event.order.subscriptions[0].subscription
+        assert subscription_plan.id == 0
+        assert subscription_plan.name == 'Sample plan'
+        assert subscription_plan.type == 'standard_plan'
+        assert subscription_plan.price is None  # Missing field handled gracefully
+        assert subscription_plan.renewal_period is None  # Missing field handled gracefully

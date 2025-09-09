@@ -93,13 +93,14 @@ class SubscriptionPlan(WebhookBaseModel):
     """Subscription plan details."""
 
     id: int
-    price: int  # Price in smallest currency unit (cents)
     name: str
     slug: str
-    renewal_period: RenewalPeriod
-    interval_unit: IntervalUnit
+    price: Optional[int] = None  # Price in smallest currency unit (cents)
+    renewal_period: Optional[RenewalPeriod] = None
+    interval_unit: Optional[IntervalUnit] = None
     interval_count: int = 1
     for_sale: bool = True
+    type: Optional[str] = None  # Plan type (e.g., 'standard_plan')
 
 
 class MemberSubscription(WebhookBaseModel):
