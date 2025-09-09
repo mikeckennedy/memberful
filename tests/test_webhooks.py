@@ -2,7 +2,15 @@
 
 from typing import Any
 
-from memberful.webhooks import MemberSignupEvent, parse_payload, validate_signature
+from memberful.webhooks import (
+    MemberDeletedEvent,
+    MemberSignupEvent,
+    SubscriptionActivatedEvent,
+    SubscriptionDeletedEvent,
+    SubscriptionRenewedEvent,
+    parse_payload,
+    validate_signature,
+)
 
 
 class TestWebhookFunctions:
@@ -59,3 +67,111 @@ class TestWebhookFunctions:
         invalid_signature = 'invalid_signature'
 
         assert validate_signature(payload, invalid_signature, secret_key) is False
+
+    def test_parse_webhook_payload_member_deleted(self):
+        """Test parsing a member deleted webhook payload."""
+        payload = {
+            'event': 'member_deleted',
+            'member': {
+                'id': 12345,
+                'email': 'test@example.com',
+                'full_name': 'Test User',
+                'created_at': 1640995200,
+            },
+            'products': [],
+            'subscriptions': [],
+        }
+
+        event = parse_payload(payload)
+        assert isinstance(event, MemberDeletedEvent)
+        assert event.member.id == 12345
+        assert event.member.email == 'test@example.com'
+
+    def test_parse_webhook_payload_subscription_activated(self):
+        """Test parsing a subscription activated webhook payload."""
+        payload = {
+            'event': 'subscription.activated',
+            'member': {
+                'id': 12345,
+                'email': 'test@example.com',
+                'created_at': 1640995200,
+            },
+            'products': [],
+            'subscriptions': [
+                {
+                    'active': True,
+                    'created_at': 1640995200,
+                    'expires': True,
+                    'expires_at': 1672531200,
+                    'id': 67890,
+                    'subscription': {
+                        'id': 1,
+                        'price': 999,
+                        'name': 'Premium Plan',
+                        'slug': 'premium',
+                        'renewal_period': 'monthly',
+                        'interval_unit': 'month',
+                        'interval_count': 1,
+                    },
+                }
+            ],
+        }
+
+        event = parse_payload(payload)
+        assert isinstance(event, SubscriptionActivatedEvent)
+        assert event.member.id == 12345
+        assert len(event.subscriptions) == 1
+        assert event.subscriptions[0].active is True
+
+    def test_parse_webhook_payload_subscription_deleted(self):
+        """Test parsing a subscription deleted webhook payload."""
+        payload = {
+            'event': 'subscription.deleted',
+            'member': {
+                'id': 12345,
+                'email': 'test@example.com',
+                'created_at': 1640995200,
+            },
+            'products': [],
+            'subscriptions': [],
+        }
+
+        event = parse_payload(payload)
+        assert isinstance(event, SubscriptionDeletedEvent)
+        assert event.member.id == 12345
+
+    def test_parse_webhook_payload_subscription_renewed(self):
+        """Test parsing a subscription renewed webhook payload."""
+        payload = {
+            'event': 'subscription.renewed',
+            'member': {
+                'id': 12345,
+                'email': 'test@example.com',
+                'created_at': 1640995200,
+            },
+            'products': [],
+            'subscriptions': [
+                {
+                    'active': True,
+                    'created_at': 1640995200,
+                    'expires': True,
+                    'expires_at': 1675123200,  # Renewed expiration date
+                    'id': 67890,
+                    'subscription': {
+                        'id': 1,
+                        'price': 999,
+                        'name': 'Premium Plan',
+                        'slug': 'premium',
+                        'renewal_period': 'monthly',
+                        'interval_unit': 'month',
+                        'interval_count': 1,
+                    },
+                }
+            ],
+        }
+
+        event = parse_payload(payload)
+        assert isinstance(event, SubscriptionRenewedEvent)
+        assert event.member.id == 12345
+        assert len(event.subscriptions) == 1
+        assert event.subscriptions[0].expires_at == 1675123200

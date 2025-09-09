@@ -271,12 +271,52 @@ class DownloadDeletedEvent(WebhookBaseModel):
     product: Product
 
 
+class MemberDeletedEvent(WebhookBaseModel):
+    """member_deleted webhook event."""
+
+    event: str = Field(..., pattern=r'^member_deleted$')
+    member: Member
+    products: list[Product] = Field(default_factory=list)
+    subscriptions: list[MemberSubscription] = Field(default_factory=list)
+
+
+class SubscriptionActivatedEvent(WebhookBaseModel):
+    """subscription.activated webhook event."""
+
+    event: str = Field(..., pattern=r'^subscription\.activated$')
+    member: Member
+    products: list[Product] = Field(default_factory=list)
+    subscriptions: list[MemberSubscription] = Field(default_factory=list)
+
+
+class SubscriptionDeletedEvent(WebhookBaseModel):
+    """subscription.deleted webhook event."""
+
+    event: str = Field(..., pattern=r'^subscription\.deleted$')
+    member: Member
+    products: list[Product] = Field(default_factory=list)
+    subscriptions: list[MemberSubscription] = Field(default_factory=list)
+
+
+class SubscriptionRenewedEvent(WebhookBaseModel):
+    """subscription.renewed webhook event."""
+
+    event: str = Field(..., pattern=r'^subscription\.renewed$')
+    member: Member
+    products: list[Product] = Field(default_factory=list)
+    subscriptions: list[MemberSubscription] = Field(default_factory=list)
+
+
 # Union type for all webhook events
 WebhookEvent = (
     MemberSignupEvent
     | MemberUpdatedEvent
+    | MemberDeletedEvent
     | SubscriptionCreatedEvent
     | SubscriptionUpdatedEvent
+    | SubscriptionActivatedEvent
+    | SubscriptionDeletedEvent
+    | SubscriptionRenewedEvent
     | OrderCompletedEvent
     | OrderSuspendedEvent
     | SubscriptionPlanCreatedEvent

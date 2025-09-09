@@ -4,14 +4,18 @@ This document contains the JSON structures for all Memberful webhook events as d
 
 ## Pydantic Models
 
-Each webhook event has a corresponding Pydantic model in `src/memberful/webhook_models.py` for type-safe parsing and validation. Import these models from:
+Each webhook event has a corresponding Pydantic model in `src/memberful/webhooks/models.py` for type-safe parsing and validation. Import these models from:
 
 ```python
-from memberful.webhook_models import (
+from memberful.webhooks import (
     MemberSignupEvent,
     MemberUpdatedEvent,
+    MemberDeletedEvent,
     SubscriptionCreatedEvent,
     SubscriptionUpdatedEvent,
+    SubscriptionActivatedEvent,
+    SubscriptionDeletedEvent,
+    SubscriptionRenewedEvent,
     OrderCompletedEvent,
     OrderSuspendedEvent,
     SubscriptionPlanCreatedEvent,
@@ -134,6 +138,52 @@ Triggered when a member is updated.
       "trial_start_at": null
     }
   ]
+}
+```
+
+### member_deleted
+Triggered when a member account is deleted.
+
+**Pydantic Model:** `MemberDeletedEvent`
+
+```json
+{
+  "event": "member_deleted",
+  "member": {
+    "address": {
+      "street": "Street",
+      "city": "City",
+      "state": "State",
+      "postal_code": "Postal code",
+      "country": "City"
+    },
+    "created_at": 1756245496,
+    "credit_card": {
+      "exp_month": 1,
+      "exp_year": 2040
+    },
+    "custom_field": "Custom field value",
+    "discord_user_id": "000000000000000000",
+    "email": "john.doe@example.com",
+    "first_name": "John",
+    "full_name": "John Doe",
+    "id": 0,
+    "last_name": "Doe",
+    "phone_number": "555-12345",
+    "signup_method": "checkout",
+    "stripe_customer_id": "cus_00000",
+    "tracking_params": {
+      "utm_term": "shoes",
+      "utm_campaign": "summer_sale",
+      "utm_medium": "social",
+      "utm_source": "instagram",
+      "utm_content": "textlink"
+    },
+    "unrestricted_access": false,
+    "username": "john_doe"
+  },
+  "products": [],
+  "subscriptions": []
 }
 ```
 
@@ -275,6 +325,186 @@ Triggered when a subscription is updated (including upgrades and downgrades).
     "expires_at": ["2023-05-12T15:09:58Z", "2023-06-11T15:09:58Z"],
     "autorenew": [false, true]
   }
+}
+```
+
+### subscription.activated
+Triggered when a subscription is activated.
+
+**Pydantic Model:** `SubscriptionActivatedEvent`
+
+```json
+{
+  "event": "subscription.activated",
+  "member": {
+    "address": {
+      "street": "Street",
+      "city": "City",
+      "state": "State",
+      "postal_code": "Postal code",
+      "country": "City"
+    },
+    "created_at": 1756245496,
+    "credit_card": {
+      "exp_month": 1,
+      "exp_year": 2040
+    },
+    "custom_field": "Custom field value",
+    "discord_user_id": "000000000000000000",
+    "email": "john.doe@example.com",
+    "first_name": "John",
+    "full_name": "John Doe",
+    "id": 0,
+    "last_name": "Doe",
+    "phone_number": "555-12345",
+    "signup_method": "checkout",
+    "stripe_customer_id": "cus_00000",
+    "tracking_params": {
+      "utm_term": "shoes",
+      "utm_campaign": "summer_sale",
+      "utm_medium": "social",
+      "utm_source": "instagram",
+      "utm_content": "textlink"
+    },
+    "unrestricted_access": false,
+    "username": "john_doe"
+  },
+  "products": [],
+  "subscriptions": [
+    {
+      "active": true,
+      "created_at": 1756245496,
+      "expires": true,
+      "expires_at": 1758837496,
+      "id": 0,
+      "in_trial_period": false,
+      "subscription": {
+        "id": 0,
+        "price": 1000,
+        "name": "Sample plan",
+        "slug": "0-sample-plan",
+        "renewal_period": "monthly",
+        "interval_unit": "month",
+        "interval_count": 1,
+        "for_sale": true
+      },
+      "trial_end_at": null,
+      "trial_start_at": null
+    }
+  ]
+}
+```
+
+### subscription.deleted
+Triggered when a subscription is deleted.
+
+**Pydantic Model:** `SubscriptionDeletedEvent`
+
+```json
+{
+  "event": "subscription.deleted",
+  "member": {
+    "address": {
+      "street": "Street",
+      "city": "City",
+      "state": "State",
+      "postal_code": "Postal code",
+      "country": "City"
+    },
+    "created_at": 1756245496,
+    "credit_card": {
+      "exp_month": 1,
+      "exp_year": 2040
+    },
+    "custom_field": "Custom field value",
+    "discord_user_id": "000000000000000000",
+    "email": "john.doe@example.com",
+    "first_name": "John",
+    "full_name": "John Doe",
+    "id": 0,
+    "last_name": "Doe",
+    "phone_number": "555-12345",
+    "signup_method": "checkout",
+    "stripe_customer_id": "cus_00000",
+    "tracking_params": {
+      "utm_term": "shoes",
+      "utm_campaign": "summer_sale",
+      "utm_medium": "social",
+      "utm_source": "instagram",
+      "utm_content": "textlink"
+    },
+    "unrestricted_access": false,
+    "username": "john_doe"
+  },
+  "products": [],
+  "subscriptions": []
+}
+```
+
+### subscription.renewed
+Triggered when a subscription is renewed.
+
+**Pydantic Model:** `SubscriptionRenewedEvent`
+
+```json
+{
+  "event": "subscription.renewed",
+  "member": {
+    "address": {
+      "street": "Street",
+      "city": "City",
+      "state": "State",
+      "postal_code": "Postal code",
+      "country": "City"
+    },
+    "created_at": 1756245496,
+    "credit_card": {
+      "exp_month": 1,
+      "exp_year": 2040
+    },
+    "custom_field": "Custom field value",
+    "discord_user_id": "000000000000000000",
+    "email": "john.doe@example.com",
+    "first_name": "John",
+    "full_name": "John Doe",
+    "id": 0,
+    "last_name": "Doe",
+    "phone_number": "555-12345",
+    "signup_method": "checkout",
+    "stripe_customer_id": "cus_00000",
+    "tracking_params": {
+      "utm_term": "shoes",
+      "utm_campaign": "summer_sale",
+      "utm_medium": "social",
+      "utm_source": "instagram",
+      "utm_content": "textlink"
+    },
+    "unrestricted_access": false,
+    "username": "john_doe"
+  },
+  "products": [],
+  "subscriptions": [
+    {
+      "active": true,
+      "created_at": 1756245496,
+      "expires": true,
+      "expires_at": 1761421496,
+      "id": 0,
+      "in_trial_period": false,
+      "subscription": {
+        "id": 0,
+        "price": 1000,
+        "name": "Sample plan",
+        "slug": "0-sample-plan",
+        "renewal_period": "monthly",
+        "interval_unit": "month",
+        "interval_count": 1,
+        "for_sale": true
+      },
+      "trial_end_at": null,
+      "trial_start_at": null
+    }
+  ]
 }
 ```
 
@@ -553,7 +783,7 @@ Triggered when a download is deleted.
 
 ### Basic Parsing
 ```python
-from memberful.webhook_models import MemberSignupEvent
+from memberful.webhooks import MemberSignupEvent
 import json
 
 # Parse a member signup webhook
@@ -566,13 +796,29 @@ print(f"New member: {event.member.email}")
 
 ### Type-Safe Event Handling
 ```python
-from memberful.webhook_models import WebhookEvent, MemberSignupEvent, SubscriptionCreatedEvent
+from memberful.webhooks import (
+    WebhookEvent, 
+    MemberSignupEvent, 
+    MemberDeletedEvent,
+    SubscriptionCreatedEvent,
+    SubscriptionActivatedEvent,
+    SubscriptionDeletedEvent,
+    SubscriptionRenewedEvent
+)
 
 def handle_webhook(event: WebhookEvent):
     if isinstance(event, MemberSignupEvent):
         print(f"Welcome {event.member.email}!")
+    elif isinstance(event, MemberDeletedEvent):
+        print(f"Member deleted: {event.member.email}")
     elif isinstance(event, SubscriptionCreatedEvent):
         print(f"New subscription for {event.member.email}")
+    elif isinstance(event, SubscriptionActivatedEvent):
+        print(f"Subscription activated for {event.member.email}")
+    elif isinstance(event, SubscriptionDeletedEvent):
+        print(f"Subscription deleted for {event.member.email}")
+    elif isinstance(event, SubscriptionRenewedEvent):
+        print(f"Subscription renewed for {event.member.email}")
 ```
 
 ## Notes

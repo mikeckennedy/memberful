@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `validate_signature()` function for webhook signature verification
   - Support for all documented webhook events (member, subscription, order, plan, download)
   - Automatic event type mapping to appropriate Pydantic models
+  - **NEW**: Added support for 4 additional webhook events:
+    - `member_deleted` - Handle member deletion events
+    - `subscription.activated` - Handle subscription activation events  
+    - `subscription.deleted` - Handle subscription deletion events
+    - `subscription.renewed` - Handle subscription renewal events
 - **Robust Pydantic models** for both API and webhook data
   - Type-safe parsing and validation with permissive field handling
   - Enum support for known values (signup methods, order statuses, renewal periods)
