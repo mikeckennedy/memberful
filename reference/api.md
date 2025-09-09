@@ -22,7 +22,7 @@ Our implementation uses the actual Memberful GraphQL schema with these key chara
 - **Field Names**: Uses camelCase as per GraphQL conventions (e.g., `fullName`, `stripeCustomerId`, `unrestrictedAccess`)
 - **Cursor Pagination**: Implements proper GraphQL connection patterns with `edges`, `nodes`, and `pageInfo`
 - **Available Fields**: Only includes fields actually available in the schema (some fields like `createdAt` on Member, `signupMethod`, and `inTrialPeriod` are not available)
-- **Plan Structure**: Uses `intervalUnit` and `intervalCount` instead of `price` and `renewalPeriod`
+- **Plan Structure**: Uses `intervalUnit` and `intervalCount` for billing intervals, plus `price` and `renewalPeriod` for pricing
 - **Address Fields**: Uses `street` instead of separate `addressLine1`/`addressLine2` fields
 
 ## Getting Started
@@ -218,6 +218,18 @@ async with MemberfulClient(api_key="your_key") as client:
     if member.address:
         print(f"Location: {member.address.city}, {member.address.country}")
     
+    # Access additional member information
+    if member.phone_number:
+        print(f"Phone: {member.phone_number}")
+    if member.discord_user_id:
+        print(f"Discord ID: {member.discord_user_id}")
+    if member.deactivated:
+        print("Member is deactivated")
+    if member.confirmed_at:
+        print(f"Confirmed at: {member.confirmed_at}")
+    if member.custom_fields:
+        print(f"Custom fields: {member.custom_fields}")
+    
     # Access subscription information if available
     if member.subscriptions:
         active_subs = [s for s in member.subscriptions if s.active]
@@ -327,16 +339,32 @@ async with MemberfulClient(api_key="your_key") as client:
         # Type-safe access to subscription and plan data
         if subscription.plan:
             print(f"Plan: {subscription.plan.name}")
+            if subscription.plan.price:
+                print(f"Price: ${subscription.plan.price / 100:.2f}")
             if subscription.plan.interval_unit and subscription.plan.interval_count:
                 print(f"Billing: {subscription.plan.interval_count} {subscription.plan.interval_unit}")
+            if subscription.plan.renewal_period:
+                print(f"Renewal: {subscription.plan.renewal_period}")
+            if subscription.plan.for_sale is not None:
+                print(f"For sale: {subscription.plan.for_sale}")
+            if subscription.plan.description:
+                print(f"Description: {subscription.plan.description}")
             print(f"Slug: {subscription.plan.slug}")
         
         print(f"Active: {subscription.active}")
         if subscription.created_at:
             print(f"Created: {subscription.created_at}")
         
+        if subscription.expires is not None:
+            print(f"Expires: {subscription.expires}")
         if subscription.expires_at:
-            print(f"Expires: {subscription.expires_at}")
+            print(f"Expires at: {subscription.expires_at}")
+        if subscription.autorenew is not None:
+            print(f"Auto-renew: {subscription.autorenew}")
+        if subscription.member_id:
+            print(f"Member ID: {subscription.member_id}")
+        if subscription.coupon_code:
+            print(f"Coupon: {subscription.coupon_code}")
         if subscription.trial_end_at:
             print(f"Trial ends: {subscription.trial_end_at}")
 ```
@@ -535,10 +563,15 @@ member = Member(
     username="johndoe",
     stripe_customer_id="cus_12345",
     unrestricted_access=False,
+    phone_number="555-1234",
+    discord_user_id="123456789",
+    deactivated=False,
+    confirmed_at=1756245496,
     # Optional nested objects
     address=Address(city="San Francisco", country="US", state="CA", postal_code="94105", street="123 Main St"),
     subscriptions=[...],  # List of Subscription objects
-    custom_fields={"company": "Acme Corp"}
+    custom_fields={"company": "Acme Corp"},
+    custom_field="Additional custom data"
 )
 
 # Access with full IDE support
@@ -555,13 +588,21 @@ subscription = Subscription(
     id=67890,
     active=True,
     created_at=1756245496,
+    expires=True,
     expires_at=1758837496,
+    autorenew=True,
+    member_id=12345,
+    coupon_code="SAVE20",
     trial_end_at=None,
     plan=Plan(
         id=1,
         name="Premium Plan",
+        price=2999,  # $29.99 in cents
         interval_unit="month",  # Available field
         interval_count=1,       # Available field
+        renewal_period="monthly",
+        for_sale=True,
+        description="Premium subscription plan",
         slug="premium"
     )
 )
@@ -612,9 +653,9 @@ print(f"Page {response.current_page} of {response.total_pages}")
 All models are available from `memberful.api.models`:
 
 ### Core Models
-- `Member` - Complete member information (email, fullName, username, stripeCustomerId, etc.)
-- `Subscription` - Subscription details with plan relationships (active, createdAt, expiresAt, trialEndAt)
-- `Plan` - Subscription plan information (name, intervalUnit, intervalCount, slug)
+- `Member` - Complete member information (email, fullName, username, stripeCustomerId, phoneNumber, discordUserId, deactivated, confirmedAt, customFields, etc.)
+- `Subscription` - Subscription details with plan relationships (active, createdAt, expiresAt, trialEndAt, expires, autorenew, memberId, couponCode, etc.)
+- `Plan` - Subscription plan information (name, price, intervalUnit, intervalCount, slug, renewalPeriod, forSale, description, etc.)
 - `Product` - Download/product details
 - `Address` - Member address information (city, country, state, postalCode, street)
 - `CreditCard` - Payment method information
@@ -623,8 +664,12 @@ All models are available from `memberful.api.models`:
 ### Response Models
 - `MembersResponse` - Paginated members list
 - `SubscriptionsResponse` - Paginated subscriptions list
+- `PlansResponse` - Paginated plans list
+- `ProductsResponse` - Paginated products list
 - `MemberResponse` - Single member wrapper
 - `SubscriptionResponse` - Single subscription wrapper
+- `PlanResponse` - Single plan wrapper
+- `ProductResponse` - Single product wrapper
 
 ### Enums
 - `SignupMethod` - How the member signed up (checkout, manual, api, import)
