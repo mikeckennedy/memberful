@@ -97,6 +97,7 @@ def handle_webhook(request_body: str, signature_header: str, webhook_secret: str
 Check out the [examples directory](examples/) for ready-to-run code:
 - [Basic API Usage](examples/basic_api_usage.py) - Simple examples to get started
 - [Webhook Usage](examples/basic_webhook_usage.py) - Webhook handling patterns
+- [Webhook Parsing](examples/webhook_parsing.py) - Detailed webhook parsing examples
 - [FastAPI Integration](examples/fastapi_webhook_example/) - Complete FastAPI webhook server
 
 ## 🛠️ Core Features
@@ -115,12 +116,12 @@ Check out the [examples directory](examples/) for ready-to-run code:
 
 - ✅ Type-safe parsing of all webhook event types
 - ✅ Automatic signature verification
-- ✅ Support for all Memberful webhook events:
-  - Member events (signup, updated)
-  - Subscription events (created, updated, renewed, canceled)
-  - Order events (completed, suspended)
-  - Plan events (created, updated, deleted)
-  - Download events (created, updated, deleted)
+- ✅ Support for all 16 Memberful webhook events:
+  - **Member events**: signup, updated, deleted
+  - **Subscription events**: created, updated, activated, deleted, renewed
+  - **Order events**: completed, suspended
+  - **Plan events**: created, updated, deleted
+  - **Download events**: created, updated, deleted
 - ✅ Pydantic models for each event type
 - ✅ Helper functions for event handling
 
