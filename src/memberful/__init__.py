@@ -5,7 +5,7 @@ Use the submodules to access functionality:
 - memberful.webhooks: Webhook handling (parse_payload, validate_signature, event models)
 """
 
-__version__ = '0.1.1'
+__version__ = '0.1.0'
 __author__ = 'Michael Kennedy'
 
 # Import submodules - users must access functionality through these

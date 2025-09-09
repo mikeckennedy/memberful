@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "memberful"
-version = "0.1.1"
+version = "0.1.0"
 description = "Memberful service Python client for webhooks and API"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -14,13 +14,16 @@ authors = [
 maintainers = [
     {name = "Michael Kennedy"},
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers", 
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -62,7 +65,7 @@ include = [
 
 [tool.ruff]
 src = ["src", "tests"]
-target-version = "py313"
+target-version = "py310"
 line-length = 88
 select = [
     "E",  # pycodestyle errors
@@ -84,7 +87,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

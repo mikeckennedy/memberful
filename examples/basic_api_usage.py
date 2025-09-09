@@ -11,7 +11,7 @@ async def main():
     # Initialize the client with your API key and account URL
     settings: dict[str, str] = json.load(open('./settings.json'))
     api_key = settings['api_key']
-    
+
     # IMPORTANT: Replace 'youraccount' with your actual Memberful account name
     # Your Memberful URL is typically https://youraccount.memberful.com
     base_url = settings.get('base_url', 'https://youraccount.memberful.com')
