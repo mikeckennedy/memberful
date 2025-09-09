@@ -50,7 +50,9 @@ Triggered when a new member account is created.
     "created_at": 1756245496,
     "credit_card": {
       "exp_month": 1,
-      "exp_year": 2040
+      "exp_year": 2040,
+      "last_four": "4242",
+      "brand": "visa"
     },
     "custom_field": "Custom field value",
     "discord_user_id": "000000000000000000",
@@ -94,7 +96,9 @@ Triggered when a member is updated.
     "created_at": 1756245496,
     "credit_card": {
       "exp_month": 1,
-      "exp_year": 2040
+      "exp_year": 2040,
+      "last_four": "4242",
+      "brand": "visa"
     },
     "custom_field": "Custom field value",
     "discord_user_id": "000000000000000000",
@@ -133,7 +137,8 @@ Triggered when a member is updated.
         "renewal_period": "monthly",
         "interval_unit": "month", 
         "interval_count": 1,
-        "for_sale": true
+        "for_sale": true,
+        "type": "standard_plan"
       },
       "trial_end_at": null,
       "trial_start_at": null
@@ -495,7 +500,8 @@ Triggered when a new plan is created.
     "renewal_period": "monthly",
     "interval_unit": "month", 
     "interval_count": 1,
-    "for_sale": true
+    "for_sale": true,
+    "type": "standard_plan"
   }
 }
 ```
