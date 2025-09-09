@@ -71,7 +71,7 @@ class TestWebhookFunctions:
     def test_parse_webhook_payload_member_deleted(self):
         """Test parsing a member deleted webhook payload."""
         payload = {
-            'event': 'member_deleted',
+            'event': 'member.deleted',
             'member': {
                 'id': 12345,
                 'email': 'test@example.com',

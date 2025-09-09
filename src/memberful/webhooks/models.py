@@ -272,9 +272,9 @@ class DownloadDeletedEvent(WebhookBaseModel):
 
 
 class MemberDeletedEvent(WebhookBaseModel):
-    """member_deleted webhook event."""
+    """member.deleted webhook event."""
 
-    event: str = Field(..., pattern=r'^member_deleted$')
+    event: str = Field(..., pattern=r'^member\.deleted$')
     member: Member
     products: list[Product] = Field(default_factory=list)
     subscriptions: list[MemberSubscription] = Field(default_factory=list)

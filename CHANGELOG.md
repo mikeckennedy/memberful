@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Support for all documented webhook events (member, subscription, order, plan, download)
   - Automatic event type mapping to appropriate Pydantic models
   - **NEW**: Added support for 4 additional webhook events:
-    - `member_deleted` - Handle member deletion events
+    - `member.deleted` - Handle member deletion events
     - `subscription.activated` - Handle subscription activation events  
     - `subscription.deleted` - Handle subscription deletion events
     - `subscription.renewed` - Handle subscription renewal events

@@ -141,14 +141,14 @@ Triggered when a member is updated.
 }
 ```
 
-### member_deleted
+### member.deleted
 Triggered when a member account is deleted.
 
 **Pydantic Model:** `MemberDeletedEvent`
 
 ```json
 {
-  "event": "member_deleted",
+  "event": "member.deleted",
   "member": {
     "address": {
       "street": "Street",

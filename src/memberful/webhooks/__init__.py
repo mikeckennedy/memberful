@@ -86,7 +86,7 @@ def parse_payload(payload: dict[str, Any]) -> WebhookEvent:
             return MemberSignupEvent(**payload)
         case 'member_updated':
             return MemberUpdatedEvent(**payload)
-        case 'member_deleted':
+        case 'member.deleted':
             return MemberDeletedEvent(**payload)
         case 'subscription.created':
             return SubscriptionCreatedEvent(**payload)
