@@ -9,11 +9,15 @@ from memberful.webhooks import (
     SubscriptionCreatedEvent,
     SubscriptionPlanCreatedEvent,
     WebhookEvent,
+    parse_payload,
 )
 
 
 def parse_webhook_payload(payload: str) -> WebhookEvent:
     """Parse a webhook payload into the appropriate Pydantic model.
+
+    This is a wrapper around the main parse_payload function that handles
+    JSON parsing for convenience.
 
     Args:
         payload: Raw JSON webhook payload
@@ -26,26 +30,9 @@ def parse_webhook_payload(payload: str) -> WebhookEvent:
     """
     try:
         data = json.loads(payload)
-        event_type = data.get('event')
-
-        # Parse based on event type
-        if event_type == 'member_signup':
-            return MemberSignupEvent(**data)
-        elif event_type == 'subscription.created':
-            return SubscriptionCreatedEvent(**data)
-        elif event_type == 'order.completed':
-            return OrderCompletedEvent(**data)
-        elif event_type == 'subscription_plan.created':
-            return SubscriptionPlanCreatedEvent(**data)
-        elif event_type == 'download.created':
-            return DownloadCreatedEvent(**data)
-        else:
-            # For other event types, you can add more specific parsing
-            # or use a generic approach with Pydantic's discriminated unions
-            raise ValueError(f'Unsupported event type: {event_type}')
-
-    except (json.JSONDecodeError, KeyError, TypeError) as e:
-        raise ValueError(f'Invalid webhook payload: {e}')
+        return parse_payload(data)
+    except json.JSONDecodeError as e:
+        raise ValueError(f'Invalid JSON payload: {e}')
 
 
 def handle_webhook_event(event: WebhookEvent):

@@ -4,7 +4,7 @@ This example demonstrates how to create a FastAPI application that handles all M
 
 ## Features
 
-- ✅ Handles all 12 Memberful webhook event types
+- ✅ Handles all 16 Memberful webhook event types
 - ✅ Type-safe webhook parsing using Pydantic models
 - ✅ RESTful API with health check endpoint
 - ✅ Auto-generated API documentation
@@ -16,9 +16,13 @@ This example demonstrates how to create a FastAPI application that handles all M
 The app handles these Memberful webhook event types:
 
 - `member_signup` - New member registration
-- `member_updated` - Member profile updates  
+- `member_updated` - Member profile updates
+- `member.deleted` - Member deletion
 - `subscription.created` - New subscription
 - `subscription.updated` - Subscription changes
+- `subscription.activated` - Subscription activation
+- `subscription.deleted` - Subscription deletion
+- `subscription.renewed` - Subscription renewal
 - `order.completed` - Order completion
 - `order.suspended` - Order suspension
 - `subscription_plan.created` - New subscription plan

@@ -9,7 +9,7 @@ Usage:
     import memberful.webhooks
 
     # Parse webhook payload
-    event = memberful.webhooks.parse_webhook_payload(payload_dict)
+    event = memberful.webhooks.parse_payload(payload_dict)
 
     # Validate webhook signature
     is_valid = memberful.webhooks.validate_webhook_signature(raw_payload, signature, secret)
@@ -75,7 +75,7 @@ def parse_payload(payload: dict[str, Any]) -> WebhookEvent:
 
     Example:
         >>> payload = {"event": "member_signup", "member": {...}, ...}
-        >>> event = parse_webhook_payload(payload)
+        >>> event = parse_payload(payload)
         >>> isinstance(event, MemberSignupEvent)
         True
     """

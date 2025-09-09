@@ -15,14 +15,18 @@ from memberful.webhooks import (
     DownloadCreatedEvent,
     DownloadDeletedEvent,
     DownloadUpdatedEvent,
+    MemberDeletedEvent,
     MemberSignupEvent,
     MemberUpdatedEvent,
     OrderCompletedEvent,
     OrderSuspendedEvent,
+    SubscriptionActivatedEvent,
     SubscriptionCreatedEvent,
+    SubscriptionDeletedEvent,
     SubscriptionPlanCreatedEvent,
     SubscriptionPlanDeletedEvent,
     SubscriptionPlanUpdatedEvent,
+    SubscriptionRenewedEvent,
     SubscriptionUpdatedEvent,
     WebhookEvent,
     parse_payload,
@@ -54,6 +58,14 @@ def handle_member_updated(event: MemberUpdatedEvent):
     print(f'   Access to products: {len(event.products)}')
 
 
+def handle_member_deleted(event: MemberDeletedEvent):
+    """Handle member deleted webhook events."""
+    print(f'🗑️  [MEMBER DELETED] Member deleted: ID {event.member.id}')
+    print(f'   Deleted: {event.member.deleted}')
+    print(f'   Active subscriptions: {len(event.subscriptions)}')
+    print(f'   Access to products: {len(event.products)}')
+
+
 def handle_subscription_created(event: SubscriptionCreatedEvent):
     """Handle subscription created webhook events."""
     print(f'💳 [SUBSCRIPTION CREATED] New subscription for: {event.member.email}')
@@ -73,6 +85,35 @@ def handle_subscription_updated(event: SubscriptionUpdatedEvent):
         print(f'   Active: {sub.active}')
     if event.changed:
         print(f'   Changes detected: {event.changed}')
+
+
+def handle_subscription_activated(event: SubscriptionActivatedEvent):
+    """Handle subscription activated webhook events."""
+    print('✅ [SUBSCRIPTION ACTIVATED] Subscription activated')
+    print(f'   Active subscriptions: {len(event.subscriptions)}')
+    for sub in event.subscriptions:
+        plan = sub.subscription
+        print(f'   Plan: {plan.name} (${plan.price / 100:.2f})')
+        print(f'   Active: {sub.active}')
+
+
+def handle_subscription_deleted(event: SubscriptionDeletedEvent):
+    """Handle subscription deleted webhook events."""
+    print('🗑️  [SUBSCRIPTION DELETED] Subscription deleted')
+    print(f'   Deleted subscriptions: {len(event.subscriptions)}')
+    for sub in event.subscriptions:
+        plan = sub.subscription
+        print(f'   Plan: {plan.name} (${plan.price / 100:.2f})')
+
+
+def handle_subscription_renewed(event: SubscriptionRenewedEvent):
+    """Handle subscription renewed webhook events."""
+    print('🔄 [SUBSCRIPTION RENEWED] Subscription renewed')
+    print(f'   Renewed subscriptions: {len(event.subscriptions)}')
+    for sub in event.subscriptions:
+        plan = sub.subscription
+        print(f'   Plan: {plan.name} (${plan.price / 100:.2f})')
+        print(f'   Active: {sub.active}')
 
 
 def handle_order_completed(event: OrderCompletedEvent):
@@ -156,10 +197,18 @@ def handle_webhook_event(event: WebhookEvent):
             handle_member_signup(event)
         case MemberUpdatedEvent():
             handle_member_updated(event)
+        case MemberDeletedEvent():
+            handle_member_deleted(event)
         case SubscriptionCreatedEvent():
             handle_subscription_created(event)
         case SubscriptionUpdatedEvent():
             handle_subscription_updated(event)
+        case SubscriptionActivatedEvent():
+            handle_subscription_activated(event)
+        case SubscriptionDeletedEvent():
+            handle_subscription_deleted(event)
+        case SubscriptionRenewedEvent():
+            handle_subscription_renewed(event)
         case OrderCompletedEvent():
             handle_order_completed(event)
         case OrderSuspendedEvent():
