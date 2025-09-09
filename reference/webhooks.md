@@ -168,42 +168,11 @@ Triggered when a new subscription is created.
 
 **Pydantic Model:** `SubscriptionCreatedEvent`
 
+**Note:** Subscription events do not include member data in the payload, only subscription-related information.
+
 ```json
 {
   "event": "subscription.created",
-  "member": {
-    "address": {
-      "street": "Street",
-      "city": "City",
-      "state": "State",
-      "postal_code": "Postal code", 
-      "country": "City"
-    },
-    "created_at": 1756245496,
-    "credit_card": {
-      "exp_month": 1,
-      "exp_year": 2040
-    },
-    "custom_field": "Custom field value",
-    "discord_user_id": "000000000000000000",
-    "email": "john.doe@example.com",
-    "first_name": "John",
-    "full_name": "John Doe",
-    "id": 0,
-    "last_name": "Doe",
-    "phone_number": "555-12345",
-    "signup_method": "checkout",
-    "stripe_customer_id": "cus_00000",
-    "tracking_params": {
-      "utm_term": "shoes",
-      "utm_campaign": "summer_sale",
-      "utm_medium": "social",
-      "utm_source": "instagram",
-      "utm_content": "textlink"
-    },
-    "unrestricted_access": false,
-    "username": "john_doe"
-  },
   "products": [],
   "subscriptions": [
     {
@@ -235,42 +204,11 @@ Triggered when a subscription is updated (including upgrades and downgrades).
 
 **Pydantic Model:** `SubscriptionUpdatedEvent`
 
+**Note:** Subscription events do not include member data in the payload, only subscription-related information.
+
 ```json
 {
   "event": "subscription.updated",
-  "member": {
-    "address": {
-      "street": "Street",
-      "city": "City",
-      "state": "State",
-      "postal_code": "Postal code",
-      "country": "City"
-    },
-    "created_at": 1756245496,
-    "credit_card": {
-      "exp_month": 1,
-      "exp_year": 2040
-    },
-    "custom_field": "Custom field value",
-    "discord_user_id": "000000000000000000", 
-    "email": "john.doe@example.com",
-    "first_name": "John",
-    "full_name": "John Doe",
-    "id": 0,
-    "last_name": "Doe",
-    "phone_number": "555-12345",
-    "signup_method": "checkout",
-    "stripe_customer_id": "cus_00000",
-    "tracking_params": {
-      "utm_term": "shoes",
-      "utm_campaign": "summer_sale",
-      "utm_medium": "social",
-      "utm_source": "instagram",
-      "utm_content": "textlink"
-    },
-    "unrestricted_access": false,
-    "username": "john_doe"
-  },
   "products": [],
   "subscriptions": [
     {
@@ -307,42 +245,11 @@ Triggered when a subscription is activated.
 
 **Pydantic Model:** `SubscriptionActivatedEvent`
 
+**Note:** Subscription events do not include member data in the payload, only subscription-related information.
+
 ```json
 {
   "event": "subscription.activated",
-  "member": {
-    "address": {
-      "street": "Street",
-      "city": "City",
-      "state": "State",
-      "postal_code": "Postal code",
-      "country": "City"
-    },
-    "created_at": 1756245496,
-    "credit_card": {
-      "exp_month": 1,
-      "exp_year": 2040
-    },
-    "custom_field": "Custom field value",
-    "discord_user_id": "000000000000000000",
-    "email": "john.doe@example.com",
-    "first_name": "John",
-    "full_name": "John Doe",
-    "id": 0,
-    "last_name": "Doe",
-    "phone_number": "555-12345",
-    "signup_method": "checkout",
-    "stripe_customer_id": "cus_00000",
-    "tracking_params": {
-      "utm_term": "shoes",
-      "utm_campaign": "summer_sale",
-      "utm_medium": "social",
-      "utm_source": "instagram",
-      "utm_content": "textlink"
-    },
-    "unrestricted_access": false,
-    "username": "john_doe"
-  },
   "products": [],
   "subscriptions": [
     {
@@ -374,42 +281,11 @@ Triggered when a subscription is deleted.
 
 **Pydantic Model:** `SubscriptionDeletedEvent`
 
+**Note:** Subscription events do not include member data in the payload, only subscription-related information.
+
 ```json
 {
   "event": "subscription.deleted",
-  "member": {
-    "address": {
-      "street": "Street",
-      "city": "City",
-      "state": "State",
-      "postal_code": "Postal code",
-      "country": "City"
-    },
-    "created_at": 1756245496,
-    "credit_card": {
-      "exp_month": 1,
-      "exp_year": 2040
-    },
-    "custom_field": "Custom field value",
-    "discord_user_id": "000000000000000000",
-    "email": "john.doe@example.com",
-    "first_name": "John",
-    "full_name": "John Doe",
-    "id": 0,
-    "last_name": "Doe",
-    "phone_number": "555-12345",
-    "signup_method": "checkout",
-    "stripe_customer_id": "cus_00000",
-    "tracking_params": {
-      "utm_term": "shoes",
-      "utm_campaign": "summer_sale",
-      "utm_medium": "social",
-      "utm_source": "instagram",
-      "utm_content": "textlink"
-    },
-    "unrestricted_access": false,
-    "username": "john_doe"
-  },
   "products": [],
   "subscriptions": []
 }
@@ -420,42 +296,11 @@ Triggered when a subscription is renewed.
 
 **Pydantic Model:** `SubscriptionRenewedEvent`
 
+**Note:** Subscription events do not include member data in the payload, only subscription-related information.
+
 ```json
 {
   "event": "subscription.renewed",
-  "member": {
-    "address": {
-      "street": "Street",
-      "city": "City",
-      "state": "State",
-      "postal_code": "Postal code",
-      "country": "City"
-    },
-    "created_at": 1756245496,
-    "credit_card": {
-      "exp_month": 1,
-      "exp_year": 2040
-    },
-    "custom_field": "Custom field value",
-    "discord_user_id": "000000000000000000",
-    "email": "john.doe@example.com",
-    "first_name": "John",
-    "full_name": "John Doe",
-    "id": 0,
-    "last_name": "Doe",
-    "phone_number": "555-12345",
-    "signup_method": "checkout",
-    "stripe_customer_id": "cus_00000",
-    "tracking_params": {
-      "utm_term": "shoes",
-      "utm_campaign": "summer_sale",
-      "utm_medium": "social",
-      "utm_source": "instagram",
-      "utm_content": "textlink"
-    },
-    "unrestricted_access": false,
-    "username": "john_doe"
-  },
   "products": [],
   "subscriptions": [
     {
@@ -784,15 +629,15 @@ def handle_webhook(event: WebhookEvent):
     if isinstance(event, MemberSignupEvent):
         print(f"Welcome {event.member.email}!")
     elif isinstance(event, MemberDeletedEvent):
-        print(f"Member deleted: {event.member.email}")
+        print(f"Member deleted: ID {event.member.id}")
     elif isinstance(event, SubscriptionCreatedEvent):
-        print(f"New subscription for {event.member.email}")
+        print(f"New subscription: {len(event.subscriptions)} subscription(s)")
     elif isinstance(event, SubscriptionActivatedEvent):
-        print(f"Subscription activated for {event.member.email}")
+        print(f"Subscription activated: {len(event.subscriptions)} subscription(s)")
     elif isinstance(event, SubscriptionDeletedEvent):
-        print(f"Subscription deleted for {event.member.email}")
+        print(f"Subscription deleted: {len(event.subscriptions)} subscription(s)")
     elif isinstance(event, SubscriptionRenewedEvent):
-        print(f"Subscription renewed for {event.member.email}")
+        print(f"Subscription renewed: {len(event.subscriptions)} subscription(s)")
 ```
 
 ## Notes

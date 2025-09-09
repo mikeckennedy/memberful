@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Created `DeletedMember` model for minimal member data (only `id` and `deleted` fields)
   - Updated `MemberDeletedEvent` to use `DeletedMember` instead of full `Member` model
   - Resolves validation errors when receiving `member.deleted` webhooks from Memberful
+- **CRITICAL FIX**: Fixed subscription webhook events to match Memberful's actual payload structure
+  - Made `member` field optional (`Optional[Member] = None`) in all subscription events
+  - Updated `SubscriptionCreatedEvent`, `SubscriptionUpdatedEvent`, `SubscriptionActivatedEvent`, `SubscriptionDeletedEvent`, and `SubscriptionRenewedEvent`
+  - Resolves "Field required" validation errors for subscription webhooks from Memberful
 
 ### Added
 - **Async Memberful API client** (`memberful.api.MemberfulClient`)

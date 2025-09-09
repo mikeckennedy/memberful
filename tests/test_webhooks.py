@@ -89,11 +89,6 @@ class TestWebhookFunctions:
         """Test parsing a subscription activated webhook payload."""
         payload = {
             'event': 'subscription.activated',
-            'member': {
-                'id': 12345,
-                'email': 'test@example.com',
-                'created_at': 1640995200,
-            },
             'products': [],
             'subscriptions': [
                 {
@@ -117,7 +112,7 @@ class TestWebhookFunctions:
 
         event = parse_payload(payload)
         assert isinstance(event, SubscriptionActivatedEvent)
-        assert event.member.id == 12345
+        assert event.member is None  # No member data in subscription events
         assert len(event.subscriptions) == 1
         assert event.subscriptions[0].active is True
 
@@ -125,28 +120,18 @@ class TestWebhookFunctions:
         """Test parsing a subscription deleted webhook payload."""
         payload = {
             'event': 'subscription.deleted',
-            'member': {
-                'id': 12345,
-                'email': 'test@example.com',
-                'created_at': 1640995200,
-            },
             'products': [],
             'subscriptions': [],
         }
 
         event = parse_payload(payload)
         assert isinstance(event, SubscriptionDeletedEvent)
-        assert event.member.id == 12345
+        assert event.member is None  # No member data in subscription events
 
     def test_parse_webhook_payload_subscription_renewed(self):
         """Test parsing a subscription renewed webhook payload."""
         payload = {
             'event': 'subscription.renewed',
-            'member': {
-                'id': 12345,
-                'email': 'test@example.com',
-                'created_at': 1640995200,
-            },
             'products': [],
             'subscriptions': [
                 {
@@ -170,6 +155,6 @@ class TestWebhookFunctions:
 
         event = parse_payload(payload)
         assert isinstance(event, SubscriptionRenewedEvent)
-        assert event.member.id == 12345
+        assert event.member is None  # No member data in subscription events
         assert len(event.subscriptions) == 1
         assert event.subscriptions[0].expires_at == 1675123200

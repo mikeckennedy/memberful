@@ -35,19 +35,22 @@ def handle_member_deleted(event: MemberDeletedEvent):
 
 def handle_subscription_activated(event: SubscriptionActivatedEvent):
     """Handle subscription activated events."""
-    print(f'Subscription activated for member: {event.member.email}')
+    print(f'Subscription activated: {len(event.subscriptions)} subscription(s)')
+    # Note: Member data not included in subscription events, only subscription details
     # Add your custom logic here (send welcome email, grant access, etc.)
 
 
 def handle_subscription_deleted(event: SubscriptionDeletedEvent):
     """Handle subscription deleted events."""
-    print(f'Subscription deleted for member: {event.member.email}')
+    print(f'Subscription deleted: {len(event.subscriptions)} subscription(s)')
+    # Note: Member data not included in subscription events, only subscription details
     # Add your custom logic here (revoke access, send notification, etc.)
 
 
 def handle_subscription_renewed(event: SubscriptionRenewedEvent):
     """Handle subscription renewed events."""
-    print(f'Subscription renewed for member: {event.member.email}')
+    print(f'Subscription renewed: {len(event.subscriptions)} subscription(s)')
+    # Note: Member data not included in subscription events, only subscription details
     # Add your custom logic here (update billing, send receipt, etc.)
 
 

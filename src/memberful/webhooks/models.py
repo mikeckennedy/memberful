@@ -209,7 +209,7 @@ class SubscriptionCreatedEvent(WebhookBaseModel):
     """subscription.created webhook event."""
 
     event: str = Field(..., pattern=r'^subscription\.created$')
-    member: Member
+    member: Optional[Member] = None
     products: list[Product] = Field(default_factory=list)
     subscriptions: list[MemberSubscription] = Field(default_factory=list)
 
@@ -218,7 +218,7 @@ class SubscriptionUpdatedEvent(WebhookBaseModel):
     """subscription.updated webhook event."""
 
     event: str = Field(..., pattern=r'^subscription\.updated$')
-    member: Member
+    member: Optional[Member] = None
     products: list[Product] = Field(default_factory=list)
     subscriptions: list[MemberSubscription] = Field(default_factory=list)
     changed: Optional[SubscriptionChanges] = None
@@ -293,7 +293,7 @@ class SubscriptionActivatedEvent(WebhookBaseModel):
     """subscription.activated webhook event."""
 
     event: str = Field(..., pattern=r'^subscription\.activated$')
-    member: Member
+    member: Optional[Member] = None
     products: list[Product] = Field(default_factory=list)
     subscriptions: list[MemberSubscription] = Field(default_factory=list)
 
@@ -302,7 +302,7 @@ class SubscriptionDeletedEvent(WebhookBaseModel):
     """subscription.deleted webhook event."""
 
     event: str = Field(..., pattern=r'^subscription\.deleted$')
-    member: Member
+    member: Optional[Member] = None
     products: list[Product] = Field(default_factory=list)
     subscriptions: list[MemberSubscription] = Field(default_factory=list)
 
@@ -311,7 +311,7 @@ class SubscriptionRenewedEvent(WebhookBaseModel):
     """subscription.renewed webhook event."""
 
     event: str = Field(..., pattern=r'^subscription\.renewed$')
-    member: Member
+    member: Optional[Member] = None
     products: list[Product] = Field(default_factory=list)
     subscriptions: list[MemberSubscription] = Field(default_factory=list)
 
