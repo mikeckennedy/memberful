@@ -1,6 +1,6 @@
 # Memberful Python SDK
 
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Pydantic v2](https://img.shields.io/badge/Pydantic-v2-brightgreen.svg)](https://docs.pydantic.dev/)
 
@@ -17,7 +17,7 @@ A modern, type-safe Python SDK for integrating with [Memberful](https://memberfu
 - **🪝 Webhook Support**: Parse and validate webhook events with confidence
 - **📚 Rich Documentation**: Detailed examples and comprehensive API documentation
 - **🧪 Battle-Tested**: Extensive test suite ensures reliability
-- **🐍 Modern Python**: Supports Python 3.12+ with all the latest features
+- **🐍 Modern Python**: Supports Python 3.10+ with all the latest features
 
 ## 📦 Installation
 
@@ -56,8 +56,8 @@ async with MemberfulClient(api_key="YOUR_API_KEY") as client:
 
 ```python
 from memberful.webhooks import (
-    parse_webhook_event, 
-    verify_webhook_signature,
+    parse_payload, 
+    validate_signature,
     MemberSignupEvent,
     SubscriptionCreatedEvent
 )
@@ -65,15 +65,15 @@ import json
 
 def handle_webhook(request_body: str, signature_header: str, webhook_secret: str):
     # Verify the webhook signature
-    if not verify_webhook_signature(
+    if not validate_signature(
         payload=request_body,
         signature=signature_header,
-        secret=webhook_secret
+        secret_key=webhook_secret
     ):
         raise ValueError("Invalid webhook signature")
     
     # Parse the event with full type safety
-    event = parse_webhook_event(json.loads(request_body))
+    event = parse_payload(json.loads(request_body))
     
     # Handle different event types with isinstance checks
     match event:
@@ -96,7 +96,7 @@ def handle_webhook(request_body: str, signature_header: str, webhook_secret: str
 
 Check out the [examples directory](examples/) for ready-to-run code:
 - [Basic API Usage](examples/basic_api_usage.py) - Simple examples to get started
-- [Webhook Parsing](examples/webhook_parsing.py) - Webhook handling patterns
+- [Webhook Usage](examples/basic_webhook_usage.py) - Webhook handling patterns
 - [FastAPI Integration](examples/fastapi_webhook_example/) - Complete FastAPI webhook server
 
 ## 🛠️ Core Features

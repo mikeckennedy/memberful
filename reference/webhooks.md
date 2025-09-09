@@ -608,10 +608,25 @@ Triggered when a download is deleted.
 
 ### Basic Parsing
 ```python
-from memberful.webhooks import MemberSignupEvent
+from memberful.webhooks import parse_payload, validate_signature
 import json
 
-# Parse a member signup webhook
+# Complete webhook handling with signature validation
+def handle_webhook(request_body: str, signature_header: str, webhook_secret: str):
+    # 1. Validate the webhook signature
+    if not validate_signature(request_body, signature_header, webhook_secret):
+        raise ValueError("Invalid webhook signature")
+    
+    # 2. Parse the payload into a strongly-typed event
+    data = json.loads(request_body)
+    event = parse_payload(data)
+    
+    print(f"Received {event.event} event")
+    return event
+
+# Alternative: Direct parsing (if you've already validated signature elsewhere)
+from memberful.webhooks import MemberSignupEvent
+
 payload = request.get_data(as_text=True)
 data = json.loads(payload)
 event = MemberSignupEvent(**data)
