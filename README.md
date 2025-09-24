@@ -36,10 +36,10 @@ uv add memberful
 ### API Client
 
 ```python
-from memberful.api import MemberfulClient
+import memberful.api
 
 # Initialize the client
-async with MemberfulClient(api_key="YOUR_API_KEY") as client:
+async with memberful.api.MemberfulClient(api_key="YOUR_API_KEY") as client:
     # Get all members with full type safety
     members = await client.get_all_members()
     
@@ -55,17 +55,12 @@ async with MemberfulClient(api_key="YOUR_API_KEY") as client:
 ### Webhook Handling
 
 ```python
-from memberful.webhooks import (
-    parse_payload, 
-    validate_signature,
-    MemberSignupEvent,
-    SubscriptionCreatedEvent
-)
+import memberful.webhooks
 import json
 
 def handle_webhook(request_body: str, signature_header: str, webhook_secret: str):
     # Verify the webhook signature
-    if not validate_signature(
+    if not memberful.webhooks.validate_signature(
         payload=request_body,
         signature=signature_header,
         secret_key=webhook_secret
@@ -73,13 +68,13 @@ def handle_webhook(request_body: str, signature_header: str, webhook_secret: str
         raise ValueError("Invalid webhook signature")
     
     # Parse the event with full type safety
-    event = parse_payload(json.loads(request_body))
+    event = memberful.webhooks.parse_payload(json.loads(request_body))
     
     # Handle different event types with isinstance checks
     match event:
-        case MemberSignupEvent():
+        case memberful.webhooks.MemberSignupEvent():
             print(f"New member: {event.member.email}")
-        case SubscriptionCreatedEvent():
+        case memberful.webhooks.SubscriptionCreatedEvent():
             print(f"New subscription for: {event.member.email}")
         case _:
             print(f"Received {event.event} event")
@@ -116,10 +111,10 @@ Check out the [examples directory](examples/) for ready-to-run code:
 
 - ✅ Type-safe parsing of all webhook event types
 - ✅ Automatic signature verification
-- ✅ Support for all 16 Memberful webhook events:
+- ✅ Support for 17 Memberful webhook events:
   - **Member events**: signup, updated, deleted
-  - **Subscription events**: created, updated, activated, deleted, renewed
-  - **Order events**: completed, suspended
+  - **Subscription events**: created, updated, activated, deactivated, deleted, renewed
+  - **Order events**: purchased, refunded, completed, suspended
   - **Plan events**: created, updated, deleted
   - **Download events**: created, updated, deleted
 - ✅ Pydantic models for each event type
