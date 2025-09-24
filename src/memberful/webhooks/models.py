@@ -7,7 +7,7 @@ webhook data variations.
 """
 
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -96,6 +96,7 @@ class SubscriptionPlan(WebhookBaseModel):
     name: str
     slug: str
     price: Optional[int] = None  # Price in smallest currency unit (cents)
+    price_cents: Optional[int] = None  # Alternative field name used in webhooks
     renewal_period: Optional[RenewalPeriod] = None
     interval_unit: Optional[IntervalUnit] = None
     interval_count: int = 1
@@ -152,6 +153,20 @@ class Member(WebhookBaseModel):
     custom_field: Optional[Any] = None
 
 
+class Subscription(WebhookBaseModel):
+    """Subscription details for webhook events."""
+
+    id: int
+    active: bool
+    autorenew: bool
+    created_at: str  # ISO datetime string
+    expires_at: str  # ISO datetime string
+    member: Member
+    subscription_plan: SubscriptionPlan
+    trial_end_at: Optional[str] = None  # ISO datetime string
+    trial_start_at: Optional[str] = None  # ISO datetime string
+
+
 class DeletedMember(WebhookBaseModel):
     """Minimal member information for deleted member events."""
 
@@ -171,18 +186,34 @@ class SubscriptionChanges(WebhookBaseModel):
     price: Optional[list[int]] = None
 
 
+class MemberChanges(WebhookBaseModel):
+    """Changes made to a member (for member_updated events)."""
+
+    # Common member fields that can change - each is [old_value, new_value]
+    email: Optional[list[str]] = None
+    first_name: Optional[list[str]] = None
+    last_name: Optional[list[str]] = None
+    full_name: Optional[list[str]] = None
+    username: Optional[list[str]] = None
+    phone_number: Optional[list[str]] = None
+    discord_user_id: Optional[list[str]] = None
+    stripe_customer_id: Optional[list[str]] = None
+    unrestricted_access: Optional[list[bool]] = None
+    custom_field: Optional[list[Any]] = None  # Custom fields can be any type
+
+
 class Order(WebhookBaseModel):
     """Order information."""
 
     uuid: str
-    number: str
+    number: Optional[str] = None
     total: int  # Total in smallest currency unit (cents)
     status: OrderStatus
     receipt: Optional[str] = None
-    created_at: Optional[int] = None  # Unix timestamp
+    created_at: Optional[Union[int, str]] = None  # Unix timestamp or ISO datetime string
 
-    # Related objects
-    member: Member
+    # Related objects (optional - not present in all webhook contexts)
+    member: Optional[Member] = None
     products: list[Product] = Field(default_factory=list)
     subscriptions: list[MemberSubscription] = Field(default_factory=list)
 
@@ -202,26 +233,21 @@ class MemberUpdatedEvent(WebhookBaseModel):
 
     event: str = Field(..., pattern=r'^member_updated$')
     member: Member
-    products: list[Product] = Field(default_factory=list)
-    subscriptions: list[MemberSubscription] = Field(default_factory=list)
+    changed: Optional[MemberChanges] = None
 
 
 class SubscriptionCreatedEvent(WebhookBaseModel):
     """subscription.created webhook event."""
 
     event: str = Field(..., pattern=r'^subscription\.created$')
-    member: Optional[Member] = None
-    products: list[Product] = Field(default_factory=list)
-    subscriptions: list[MemberSubscription] = Field(default_factory=list)
+    subscription: Subscription
 
 
 class SubscriptionUpdatedEvent(WebhookBaseModel):
     """subscription.updated webhook event."""
 
     event: str = Field(..., pattern=r'^subscription\.updated$')
-    member: Optional[Member] = None
-    products: list[Product] = Field(default_factory=list)
-    subscriptions: list[MemberSubscription] = Field(default_factory=list)
+    subscription: Subscription
     changed: Optional[SubscriptionChanges] = None
 
 
@@ -286,35 +312,28 @@ class MemberDeletedEvent(WebhookBaseModel):
 
     event: str = Field(..., pattern=r'^member\.deleted$')
     member: DeletedMember
-    products: list[Product] = Field(default_factory=list)
-    subscriptions: list[MemberSubscription] = Field(default_factory=list)
 
 
 class SubscriptionActivatedEvent(WebhookBaseModel):
     """subscription.activated webhook event."""
 
     event: str = Field(..., pattern=r'^subscription\.activated$')
-    member: Optional[Member] = None
-    products: list[Product] = Field(default_factory=list)
-    subscriptions: list[MemberSubscription] = Field(default_factory=list)
+    subscription: Subscription
 
 
 class SubscriptionDeletedEvent(WebhookBaseModel):
     """subscription.deleted webhook event."""
 
     event: str = Field(..., pattern=r'^subscription\.deleted$')
-    member: Optional[Member] = None
-    products: list[Product] = Field(default_factory=list)
-    subscriptions: list[MemberSubscription] = Field(default_factory=list)
+    subscription: Subscription
 
 
 class SubscriptionRenewedEvent(WebhookBaseModel):
     """subscription.renewed webhook event."""
 
     event: str = Field(..., pattern=r'^subscription\.renewed$')
-    member: Optional[Member] = None
-    products: list[Product] = Field(default_factory=list)
-    subscriptions: list[MemberSubscription] = Field(default_factory=list)
+    subscription: Subscription
+    order: Order
 
 
 # Union type for all webhook events

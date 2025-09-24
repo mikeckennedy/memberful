@@ -9,6 +9,8 @@ This is a Python package for interacting with Memberful's webhooks and API, desi
 - **Python Version**: 3.13+ (using latest syntax)
 - **Key Features**: Pydantic webhook models, async API client, signature verification
 
+Always use the local virtual environment when running Python commands. This will either be in venv or .venv in the workspace root.
+
 ## Project Structure
 
 ```
