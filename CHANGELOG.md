@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-01-27
+
 ### Enhanced
+- **Comprehensive webhook example** (`examples/basic_webhook_usage.py`)
+  - Expanded to handle all 17 available Memberful webhook event types
+  - Added handlers for member_updated, subscription_updated, subscription_deactivated events
+  - Added handlers for all order events (purchased, refunded, completed, suspended)
+  - Added handlers for subscription plan events (created, updated, deleted)
+  - Added handlers for download/product events (created, updated, deleted)
+  - Updated match statement with organized event routing by category
+  - Fixed existing subscription handlers to use correct data structure
+  - Added comprehensive documentation and practical usage examples
+  - Enhanced module documentation with complete event coverage details
+
 - **Improved webhook event documentation** (`memberful.webhooks.models`)
   - Enhanced docstrings for all webhook event classes with detailed descriptions
   - Added comprehensive usage guidance for each event type
