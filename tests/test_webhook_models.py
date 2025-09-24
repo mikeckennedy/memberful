@@ -201,13 +201,28 @@ class TestWebhookEvents:
         """Test SubscriptionUpdatedEvent with changes section."""
         event_data: dict[str, Any] = {
             'event': 'subscription.updated',
-            'member': {
-                'id': 123,
-                'email': 'test@example.com',
-                'created_at': 1640995200,
+            'subscription': {
+                'active': True,
+                'autorenew': True,
+                'created_at': '2023-01-01T00:00:00Z',
+                'expires_at': '2023-02-01T00:00:00Z',
+                'id': 1,
+                'member': {
+                    'id': 123,
+                    'email': 'test@example.com',
+                    'created_at': 1640995200,
+                },
+                'subscription_plan': {
+                    'id': 43,
+                    'name': 'Premium Plan',
+                    'slug': 'premium-plan',
+                    'interval_count': 1,
+                    'interval_unit': 'month',
+                    'price_cents': 2000,
+                },
+                'trial_end_at': None,
+                'trial_start_at': None,
             },
-            'products': [],
-            'subscriptions': [],
             'changed': {
                 'plan_id': [42, 43],
                 'expires_at': ['2023-01-01T00:00:00Z', '2023-02-01T00:00:00Z'],
@@ -216,6 +231,9 @@ class TestWebhookEvents:
         }
         event = SubscriptionUpdatedEvent.model_validate(event_data)
         assert event.event == 'subscription.updated'
+        assert event.subscription.id == 1
+        assert event.subscription.member.id == 123
+        assert event.subscription.member.email == 'test@example.com'
         assert event.changed is not None
         assert event.changed.plan_id == [42, 43]
         assert event.changed.autorenew == [False, True]

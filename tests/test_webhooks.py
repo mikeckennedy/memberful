@@ -90,75 +90,108 @@ class TestWebhookFunctions:
         """Test parsing a subscription activated webhook payload."""
         payload = {
             'event': 'subscription.activated',
-            'products': [],
-            'subscriptions': [
-                {
-                    'active': True,
+            'subscription': {
+                'active': True,
+                'autorenew': True,
+                'created_at': '2022-01-01T00:00:00Z',
+                'expires_at': '2022-12-31T23:59:59Z',
+                'id': 1,
+                'member': {
+                    'id': 12345,
+                    'email': 'test@example.com',
                     'created_at': 1640995200,
-                    'expires': True,
-                    'expires_at': 1672531200,
-                    'id': 67890,
-                    'subscription': {
-                        'id': 1,
-                        'price': 999,
-                        'name': 'Premium Plan',
-                        'slug': 'premium',
-                        'renewal_period': 'monthly',
-                        'interval_unit': 'month',
-                        'interval_count': 1,
-                    },
-                }
-            ],
+                },
+                'subscription_plan': {
+                    'id': 1,
+                    'name': 'Premium Plan',
+                    'slug': 'premium',
+                    'interval_count': 1,
+                    'interval_unit': 'month',
+                    'price_cents': 99900,
+                },
+                'trial_end_at': None,
+                'trial_start_at': None,
+            },
         }
 
         event = parse_payload(payload)
         assert isinstance(event, SubscriptionActivatedEvent)
-        assert event.member is None  # No member data in subscription events
-        assert len(event.subscriptions) == 1
-        assert event.subscriptions[0].active is True
+        assert event.subscription.active is True
+        assert event.subscription.member.id == 12345
+        assert event.subscription.subscription_plan.name == 'Premium Plan'
 
     def test_parse_webhook_payload_subscription_deleted(self):
         """Test parsing a subscription deleted webhook payload."""
         payload = {
             'event': 'subscription.deleted',
-            'products': [],
-            'subscriptions': [],
+            'subscription': {
+                'active': True,
+                'autorenew': True,
+                'created_at': '2022-01-01T00:00:00Z',
+                'expires_at': '2022-12-31T23:59:59Z',
+                'id': 1,
+                'member': {
+                    'id': 12345,
+                    'email': 'test@example.com',
+                    'created_at': 1640995200,
+                },
+                'subscription_plan': {
+                    'id': 1,
+                    'name': 'Premium Plan',
+                    'slug': 'premium',
+                    'interval_count': 1,
+                    'interval_unit': 'month',
+                    'price_cents': 99900,
+                },
+                'trial_end_at': None,
+                'trial_start_at': None,
+            },
         }
 
         event = parse_payload(payload)
         assert isinstance(event, SubscriptionDeletedEvent)
-        assert event.member is None  # No member data in subscription events
+        assert event.subscription.member.id == 12345
+        assert event.subscription.subscription_plan.name == 'Premium Plan'
 
     def test_parse_webhook_payload_subscription_renewed(self):
         """Test parsing a subscription renewed webhook payload."""
         payload = {
             'event': 'subscription.renewed',
-            'products': [],
-            'subscriptions': [
-                {
-                    'active': True,
+            'subscription': {
+                'active': True,
+                'autorenew': True,
+                'created_at': '2022-01-01T00:00:00Z',
+                'expires_at': '2023-01-01T00:00:00Z',  # Renewed expiration date
+                'id': 1,
+                'member': {
+                    'id': 12345,
+                    'email': 'test@example.com',
                     'created_at': 1640995200,
-                    'expires': True,
-                    'expires_at': 1675123200,  # Renewed expiration date
-                    'id': 67890,
-                    'subscription': {
-                        'id': 1,
-                        'price': 999,
-                        'name': 'Premium Plan',
-                        'slug': 'premium',
-                        'renewal_period': 'monthly',
-                        'interval_unit': 'month',
-                        'interval_count': 1,
-                    },
-                }
-            ],
+                },
+                'subscription_plan': {
+                    'id': 1,
+                    'name': 'Premium Plan',
+                    'slug': 'premium',
+                    'interval_count': 1,
+                    'interval_unit': 'month',
+                    'price_cents': 99900,
+                },
+                'trial_end_at': None,
+                'trial_start_at': None,
+            },
+            'order': {
+                'created_at': '2022-01-01T00:00:00Z',
+                'status': 'completed',
+                'total': 9900,
+                'uuid': '4DACB7B0-B728-0130-F9E8-102B343DC979',
+            },
         }
 
         event = parse_payload(payload)
         assert isinstance(event, SubscriptionRenewedEvent)
-        assert event.member is None  # No member data in subscription events
-        assert len(event.subscriptions) == 1
-        assert event.subscriptions[0].expires_at == 1675123200
+        assert event.subscription.member.id == 12345
+        assert event.subscription.subscription_plan.name == 'Premium Plan'
+        assert event.order.uuid == '4DACB7B0-B728-0130-F9E8-102B343DC979'
 
     def test_parse_webhook_payload_order_completed_minimal_subscription_data(self):
         """Test parsing an order completed webhook with minimal subscription data."""

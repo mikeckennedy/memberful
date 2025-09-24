@@ -223,7 +223,7 @@ class Order(WebhookBaseModel):
 
 class MemberSignupEvent(WebhookBaseModel):
     """member_signup webhook event.
-    
+
     Sent when a new member account is created. Use this webhook to add new
     members to your app or to a third-party service.
     """
@@ -234,7 +234,7 @@ class MemberSignupEvent(WebhookBaseModel):
 
 class MemberUpdatedEvent(WebhookBaseModel):
     """member_updated webhook event.
-    
+
     Sent when a member's profile information is updated. Use this webhook to
     update a member's profile information in your app. This is not triggered
     when a member updates custom fields; use custom_fields.updated for that.
@@ -247,7 +247,7 @@ class MemberUpdatedEvent(WebhookBaseModel):
 
 class SubscriptionCreatedEvent(WebhookBaseModel):
     """subscription.created webhook event.
-    
+
     Sent when a new subscription is added to a member's account, including
     purchases, gift activations, group additions, or manual creation by staff.
     Use this webhook to signal that a member has subscribed. Both group managers
@@ -260,7 +260,7 @@ class SubscriptionCreatedEvent(WebhookBaseModel):
 
 class SubscriptionUpdatedEvent(WebhookBaseModel):
     """subscription.updated webhook event.
-    
+
     Sent when a member's subscription is updated. To detect a plan change, check
     for plan_id in the changed object (first value old, second new). The same
     applies to other changed fields like autorenew.
@@ -273,7 +273,7 @@ class SubscriptionUpdatedEvent(WebhookBaseModel):
 
 class OrderCompletedEvent(WebhookBaseModel):
     """order.completed webhook event.
-    
+
     Sent when a suspended order is marked completed by staff.
     """
 
@@ -283,7 +283,7 @@ class OrderCompletedEvent(WebhookBaseModel):
 
 class OrderSuspendedEvent(WebhookBaseModel):
     """order.suspended webhook event.
-    
+
     Sent when an order is suspended by staff.
     """
 
@@ -293,7 +293,7 @@ class OrderSuspendedEvent(WebhookBaseModel):
 
 class SubscriptionPlanCreatedEvent(WebhookBaseModel):
     """subscription_plan.created webhook event.
-    
+
     Sent when a new plan is created.
     """
 
@@ -303,7 +303,7 @@ class SubscriptionPlanCreatedEvent(WebhookBaseModel):
 
 class SubscriptionPlanUpdatedEvent(WebhookBaseModel):
     """subscription_plan.updated webhook event.
-    
+
     Sent when a plan is updated.
     """
 
@@ -313,7 +313,7 @@ class SubscriptionPlanUpdatedEvent(WebhookBaseModel):
 
 class SubscriptionPlanDeletedEvent(WebhookBaseModel):
     """subscription_plan.deleted webhook event.
-    
+
     Sent when a plan is deleted.
     """
 
@@ -323,7 +323,7 @@ class SubscriptionPlanDeletedEvent(WebhookBaseModel):
 
 class DownloadCreatedEvent(WebhookBaseModel):
     """download.created webhook event.
-    
+
     Sent when a download is created.
     """
 
@@ -333,7 +333,7 @@ class DownloadCreatedEvent(WebhookBaseModel):
 
 class DownloadUpdatedEvent(WebhookBaseModel):
     """download.updated webhook event.
-    
+
     Sent when a download is updated.
     """
 
@@ -343,7 +343,7 @@ class DownloadUpdatedEvent(WebhookBaseModel):
 
 class DownloadDeletedEvent(WebhookBaseModel):
     """download.deleted webhook event.
-    
+
     Sent when a download is deleted.
     """
 
@@ -353,7 +353,7 @@ class DownloadDeletedEvent(WebhookBaseModel):
 
 class MemberDeletedEvent(WebhookBaseModel):
     """member.deleted webhook event.
-    
+
     Sent when a member is deleted from your Memberful account. Use this webhook
     to remove the member from your app if they were deleted. It is uncommon to
     delete accounts; in most cases react to subscription.deactivated instead.
@@ -365,7 +365,7 @@ class MemberDeletedEvent(WebhookBaseModel):
 
 class SubscriptionActivatedEvent(WebhookBaseModel):
     """subscription.activated webhook event.
-    
+
     Sent when a suspended order is marked completed by staff and the subscription
     becomes active again. This is not for member-led reactivation of an expired
     subscription; use subscription.renewed for that.
@@ -377,7 +377,7 @@ class SubscriptionActivatedEvent(WebhookBaseModel):
 
 class SubscriptionDeletedEvent(WebhookBaseModel):
     """subscription.deleted webhook event.
-    
+
     Sent when staff delete a member's subscription from the dashboard. Use this
     webhook to remove access or update status.
     """
@@ -388,7 +388,7 @@ class SubscriptionDeletedEvent(WebhookBaseModel):
 
 class SubscriptionRenewedEvent(WebhookBaseModel):
     """subscription.renewed webhook event.
-    
+
     Sent when a member's subscription is renewed or when a returning member
     reactivates an old subscription. Use this webhook to renew access. The
     payload does not distinguish renewal vs reactivation; query the API for
@@ -400,10 +400,9 @@ class SubscriptionRenewedEvent(WebhookBaseModel):
     order: Order
 
 
-
 class SubscriptionDeactivatedEvent(WebhookBaseModel):
     """subscription.deactivated webhook event.
-    
+
     Sent when a subscription fails to renew, expires, or becomes inactive, and
     also when staff suspend an order making the subscription inactive. Use this
     webhook to remove access or update status when payment stops.
@@ -415,7 +414,7 @@ class SubscriptionDeactivatedEvent(WebhookBaseModel):
 
 class OrderPurchasedEvent(WebhookBaseModel):
     """order.purchased webhook event.
-    
+
     Sent when a member places an order or when staff manually add an order to a
     member's account. Not triggered for renewal payments. Gift purchases trigger
     this event, but no subscription is created until the recipient activates the
@@ -428,7 +427,7 @@ class OrderPurchasedEvent(WebhookBaseModel):
 
 class OrderRefundedEvent(WebhookBaseModel):
     """order.refunded webhook event.
-    
+
     Sent when staff refund an order. Use this trigger to update your app when a
     refund is processed.
     """

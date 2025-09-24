@@ -206,7 +206,7 @@ def process_webhook(payload: str, signature: str, secret_key: str):
             handle_member_updated(webhook_event)
         case MemberDeletedEvent():
             handle_member_deleted(webhook_event)
-        
+
         # Subscription events
         case SubscriptionCreatedEvent():
             handle_subscription_created(webhook_event)
@@ -220,7 +220,7 @@ def process_webhook(payload: str, signature: str, secret_key: str):
             handle_subscription_deleted(webhook_event)
         case SubscriptionRenewedEvent():
             handle_subscription_renewed(webhook_event)
-        
+
         # Order events
         case OrderPurchasedEvent():
             handle_order_purchased(webhook_event)
@@ -230,7 +230,7 @@ def process_webhook(payload: str, signature: str, secret_key: str):
             handle_order_completed(webhook_event)
         case OrderSuspendedEvent():
             handle_order_suspended(webhook_event)
-        
+
         # Subscription plan events
         case SubscriptionPlanCreatedEvent():
             handle_subscription_plan_created(webhook_event)
@@ -238,7 +238,7 @@ def process_webhook(payload: str, signature: str, secret_key: str):
             handle_subscription_plan_updated(webhook_event)
         case SubscriptionPlanDeletedEvent():
             handle_subscription_plan_deleted(webhook_event)
-        
+
         # Download/Product events
         case DownloadCreatedEvent():
             handle_download_created(webhook_event)
@@ -246,7 +246,7 @@ def process_webhook(payload: str, signature: str, secret_key: str):
             handle_download_updated(webhook_event)
         case DownloadDeletedEvent():
             handle_download_deleted(webhook_event)
-        
+
         case _:
             print(f'Unhandled event type: {webhook_event.event}')
 
@@ -255,17 +255,17 @@ def process_webhook(payload: str, signature: str, secret_key: str):
 
 def webhook_example():
     """Example webhook handling setup using the functional approach.
-    
+
     This function demonstrates the typical flow for processing Memberful webhooks
     in a web application. The pattern shown here can be adapted to any web
     framework (Flask, FastAPI, Django, etc.).
-    
+
     Key steps:
     1. Extract raw payload and signature from the HTTP request
     2. Validate the webhook signature for security
     3. Parse the payload into a strongly-typed event object
     4. Route the event to the appropriate handler function
-    
+
     Security Note:
     Always validate webhook signatures in production to ensure the webhook
     is actually from Memberful and hasn't been tampered with.
@@ -276,7 +276,7 @@ def webhook_example():
     # payload = request.get_data(as_text=True)  # Raw request body as string
     # signature = request.headers.get('X-Memberful-Webhook-Signature')
     # secret_key = 'your_webhook_secret_key'  # From Memberful dashboard
-    # 
+    #
     # try:
     #     event = process_webhook(payload, signature, secret_key)
     #     print(f"Successfully processed webhook event: {event.event}")
