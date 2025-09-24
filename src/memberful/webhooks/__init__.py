@@ -31,20 +31,25 @@ from .models import (
     DownloadUpdatedEvent,
     IntervalUnit,
     Member,
+    MemberChanges,
     MemberDeletedEvent,
     MemberSignupEvent,
     MemberSubscription,
     MemberUpdatedEvent,
     Order,
     OrderCompletedEvent,
+    OrderPurchasedEvent,
+    OrderRefundedEvent,
     OrderStatus,
     OrderSuspendedEvent,
     Product,
     RenewalPeriod,
     SignupMethod,
+    Subscription,
     SubscriptionActivatedEvent,
     SubscriptionChanges,
     SubscriptionCreatedEvent,
+    SubscriptionDeactivatedEvent,
     SubscriptionDeletedEvent,
     SubscriptionPlan,
     SubscriptionPlanCreatedEvent,
@@ -95,10 +100,16 @@ def parse_payload(payload: dict[str, Any]) -> WebhookEvent:
             return SubscriptionUpdatedEvent(**payload)
         case 'subscription.activated':
             return SubscriptionActivatedEvent(**payload)
+        case 'subscription.deactivated':
+            return SubscriptionDeactivatedEvent(**payload)
         case 'subscription.deleted':
             return SubscriptionDeletedEvent(**payload)
         case 'subscription.renewed':
             return SubscriptionRenewedEvent(**payload)
+        case 'order.purchased':
+            return OrderPurchasedEvent(**payload)
+        case 'order.refunded':
+            return OrderRefundedEvent(**payload)
         case 'order.completed':
             return OrderCompletedEvent(**payload)
         case 'order.suspended':
@@ -160,6 +171,8 @@ __all__ = [
     'Product',
     'Member',
     'DeletedMember',
+    'MemberChanges',
+    'Subscription',
     'SubscriptionChanges',
     'Order',
     # Event models
@@ -169,8 +182,11 @@ __all__ = [
     'SubscriptionCreatedEvent',
     'SubscriptionUpdatedEvent',
     'SubscriptionActivatedEvent',
+    'SubscriptionDeactivatedEvent',
     'SubscriptionDeletedEvent',
     'SubscriptionRenewedEvent',
+    'OrderPurchasedEvent',
+    'OrderRefundedEvent',
     'OrderCompletedEvent',
     'OrderSuspendedEvent',
     'SubscriptionPlanCreatedEvent',

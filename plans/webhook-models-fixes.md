@@ -81,10 +81,11 @@ class SomeSubscriptionEvent(WebhookBaseModel):
 | `DownloadUpdatedEvent` | ✅ **Perfect** | Already correctly structured with `event` + `product` fields |
 | `DownloadDeletedEvent` | ✅ **Perfect** | Already correctly structured with `event` + `product` fields |
 | `SubscriptionDeletedEvent` | ✅ **Fixed** | Complete restructure: removed incorrect `member`/`products`/`subscriptions` fields, added `subscription: Subscription` |
+| `SubscriptionDeactivatedEvent` | ✅ **Perfect** | Already correctly structured with `event` + `subscription` fields |
 
-**Final Count**: 7 models fixed, 9 models already perfect
+**Final Count**: 7 models fixed, 10 models already perfect
 
-## 🎉 ALL MODELS COMPLETE! (16/16) ✅
+## 🎉 ALL MODELS COMPLETE! (17/17) ✅
 
 ## Technical Validation
 - ✅ All models tested against actual Memberful webhook JSON examples
@@ -111,12 +112,12 @@ Fix webhook models to match Memberful's actual JSON structure
 - All models now properly validate against actual Memberful webhook JSON examples
 ```
 
-**Status**: 🚀 **MISSION COMPLETE!** All 16 webhook models are now perfectly validated and ready for production use! Every model correctly parses and validates Memberful's actual webhook data with 100% test coverage. 🎉
+**Status**: 🚀 **MISSION COMPLETE!** All 17 webhook models are now perfectly validated and ready for production use! Every model correctly parses and validates Memberful's actual webhook data with 100% test coverage. 🎉
 
 ## Final Summary
-✅ **16/16 models validated** - 100% complete!  
+✅ **17/17 models validated** - 100% complete!  
 ✅ **7 models fixed** with proper structure  
-✅ **9 models already perfect** from the start  
+✅ **10 models already perfect** from the start  
 ✅ All models tested with real Memberful JSON examples  
 ✅ Full round-trip serialization validation  
 ✅ Complete linting and formatting compliance
