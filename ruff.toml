@@ -2,8 +2,9 @@
 line-length = 120
 format.quote-style = "single"
 
-# Assume Python 3.10.
-target-version = "py310"
+# Enable Pyflakes `E` and `F` codes by default.
+lint.select = ["E", "F", "I"]
+lint.ignore = []
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -27,39 +28,16 @@ exclude = [
     ".env",
     ".venv",
     "venv",
+    "typings/**/*.pyi",
 ]
-
-[lint]
-# Enable Pyflakes `E` and `F` codes by default.
-select = [
-    "E",      # pycodestyle errors
-    "F",      # pyflakes
-    "I",      # isort (import sorting)
-    "FURB",   # refurb (modernization rules)
-]
-ignore = [
-    "E722",  # bare-except (allow bare except clauses)
-]
-
-# Unlike Flake8, default to a complexity level of 10.
-[lint.mccabe]
-max-complexity = 10
-
-[lint.per-file-ignores]
-"*.pyi" = [
-    "F403",  # undefined-local-with-import-star (star imports are common in stub files)
-    "F405",  # undefined-local-with-import-star-usage (acceptable in stub files)
-    "F811",  # redefined-while-unused (redefinitions are common in stub files)
-    "F821",  # undefined-name (references to internal types)
-    "F822",  # undefined-export (common in stub files for re-exports)
-    "E501",  # line-too-long (sometimes unavoidable in complex type annotations)
-]
-"talk_python_training/bin/reporting/enterprise_billing_to_royalties.py" = [
-    "E501",  # line-too-long (contains long billing data strings that shouldn't be broken)
-]
-"talk_python_training/bin/scripts/test_urls.py" = [
-    "E501",  # line-too-long (commented-out test file with long URL strings)
-]
+lint.per-file-ignores = { }
 
 # Allow unused variables when underscore-prefixed.
 # dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+# Assume Python 3.13.
+target-version = "py313"
+
+#[tool.ruff.mccabe]
+## Unlike Flake8, default to a complexity level of 10.
+lint.mccabe.max-complexity = 10

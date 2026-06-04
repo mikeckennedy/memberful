@@ -3,7 +3,7 @@ fastapi
 uvicorn[standard]
 
 # HTTP client for testing
-httpx
+httpx2
 
 # The memberful package (install from parent directory)
 # pip install -e ../../

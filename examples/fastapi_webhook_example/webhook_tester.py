@@ -8,7 +8,7 @@ the FastAPI app running locally. It's useful for testing and development.
 import asyncio
 import json
 
-import httpx
+import httpx2 as httpx
 
 # Sample webhook payloads for testing
 SAMPLE_PAYLOADS = {
