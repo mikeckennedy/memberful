@@ -3,7 +3,7 @@
 import asyncio
 from typing import Any, Optional
 
-import httpx
+import httpx2 as httpx
 import stamina
 from pydantic import BaseModel
 

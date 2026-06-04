@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-04
+
+### Changed
+- **Migrated HTTP client from `httpx` to `httpx2`** (`memberful.api`)
+  - Replaced the `httpx` dependency with `httpx2` (`httpx2>=2.0.0`), the Pydantic-stewarded, API-compatible continuation of `httpx` — authored by httpx's original author and maintained by Pydantic Services Inc.
+  - Motivation: upstream `httpx` development has stalled (no release in over a year, with its issue tracker and discussions locked down), making it a growing maintenance and supply-chain risk for downstream projects. `httpx2` is an actively maintained, drop-in replacement.
+  - Imports use `import httpx2 as httpx`, so the public API and behavior of `MemberfulClient` are unchanged — no migration is required for consumers of this package.
+  - Updated the FastAPI webhook example to match (`webhook_tester.py`, `requirements.piptools`, and the compiled `requirements.txt`).
+
 ## [0.2.0] - 2025-01-27
 
 ### Enhanced
