@@ -68,7 +68,13 @@ def handle_webhook(request_body: str, signature_header: str, webhook_secret: str
         raise ValueError("Invalid webhook signature")
     
     # Parse the event with full type safety
-    event = memberful.webhooks.parse_payload(json.loads(request_body))
+    try:
+        event = memberful.webhooks.parse_payload(json.loads(request_body))
+    except memberful.webhooks.UnsupportedEventError:
+        # Event types this package doesn't model (e.g. custom_fields.updated).
+        # Acknowledge with a 2xx anyway: Memberful retries failures and eventually
+        # deletes endpoints that keep failing.
+        return
     
     # Handle different event types with isinstance checks
     match event:
@@ -111,13 +117,14 @@ Check out the [examples directory](examples/) for ready-to-run code:
 
 - ✅ Type-safe parsing of all webhook event types
 - ✅ Automatic signature verification
-- ✅ Support for 17 Memberful webhook events:
+- ✅ Support for 20 Memberful webhook events:
   - **Member events**: signup, updated, deleted
-  - **Subscription events**: created, updated, activated, deactivated, deleted, renewed
+  - **Subscription events**: created, updated, activated, deactivated, deleted, renewed, reactivated
   - **Order events**: purchased, refunded, completed, suspended
   - **Plan events**: created, updated, deleted
   - **Download events**: created, updated, deleted
 - ✅ Pydantic models for each event type
+- ✅ `UnsupportedEventError` for events not modeled here (`custom_fields.updated`, `tax_id.updated`), so you can acknowledge and ignore them
 - ✅ Helper functions for event handling
 
 ## 🏗️ Architecture

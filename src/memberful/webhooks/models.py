@@ -33,10 +33,15 @@ class SignupMethod(str, Enum):
 
 
 class OrderStatus(str, Enum):
-    """Order status values."""
+    """Order status values.
+
+    Memberful documents 'completed', 'suspended', and 'refunded'. 'pending' and
+    'cancelled' are kept for backwards compatibility.
+    """
 
     COMPLETED = 'completed'
     SUSPENDED = 'suspended'
+    REFUNDED = 'refunded'
     PENDING = 'pending'
     CANCELLED = 'cancelled'
 
@@ -160,7 +165,7 @@ class Subscription(WebhookBaseModel):
     active: bool
     autorenew: bool
     created_at: str  # ISO datetime string
-    expires_at: str  # ISO datetime string
+    expires_at: Optional[str] = None  # ISO datetime string, None if it never expires
     member: Member
     subscription_plan: SubscriptionPlan
     trial_end_at: Optional[str] = None  # ISO datetime string
@@ -208,7 +213,9 @@ class Order(WebhookBaseModel):
     uuid: str
     number: Optional[str] = None
     total: int  # Total in smallest currency unit (cents)
-    status: OrderStatus
+    # Known statuses parse to OrderStatus; anything new from Memberful is kept as the raw string
+    # so an unrecognized status can't break every order event.
+    status: Union[OrderStatus, str] = Field(union_mode='left_to_right')
     receipt: Optional[str] = None
     created_at: Optional[Union[int, str]] = None  # Unix timestamp or ISO datetime string
 
@@ -400,6 +407,18 @@ class SubscriptionRenewedEvent(WebhookBaseModel):
     order: Order
 
 
+class SubscriptionReactivatedEvent(WebhookBaseModel):
+    """subscription.reactivated webhook event.
+
+    Sent when a returning member reactivates a subscription after it has lapsed
+    (introduced by Memberful in August 2026). Same shape as subscription.renewed.
+    """
+
+    event: str = Field(..., pattern=r'^subscription\.reactivated$')
+    subscription: Subscription
+    order: Optional[Order] = None
+
+
 class SubscriptionDeactivatedEvent(WebhookBaseModel):
     """subscription.deactivated webhook event.
 
@@ -444,6 +463,7 @@ WebhookEvent = (
     | SubscriptionCreatedEvent
     | SubscriptionUpdatedEvent
     | SubscriptionRenewedEvent
+    | SubscriptionReactivatedEvent
     | SubscriptionActivatedEvent
     | SubscriptionDeactivatedEvent
     | SubscriptionDeletedEvent

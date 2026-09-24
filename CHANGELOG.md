@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-24
+
+### Fixed
+- **`order.refunded` webhooks now parse** (`memberful.webhooks`)
+  - `OrderStatus` was missing `'refunded'`, so `parse_payload()` raised a `ValidationError` on Memberful's documented `order.refunded` payload. Endpoints then returned non-2xx responses, and Memberful retries those for up to 24 hours and deletes endpoints that are still failing 3 days later.
+  - Added `OrderStatus.REFUNDED`. Memberful documents `completed`, `suspended`, and `refunded`. `pending` and `cancelled` are kept for backwards compatibility.
+  - `Order.status` is now `OrderStatus | str`. Known values still parse to `OrderStatus`, and a status Memberful adds later is kept as the raw string instead of failing validation.
+- **`Subscription.expires_at` is now optional** (`str | None`, default `None`), so subscriptions that never expire parse correctly.
+
+### Added
+- **`subscription.reactivated` event** (`SubscriptionReactivatedEvent`), which Memberful introduced in August 2026 for members who reactivate a lapsed subscription. It has the same shape as `subscription.renewed`.
+- **`UnsupportedEventError`**, raised by `parse_payload()` for event types this package doesn't model, such as `custom_fields.updated` and `tax_id.updated`. It subclasses `ValueError`, so existing handlers still work. Catch it and return a 2xx to acknowledge and ignore those events.
+
 ## [0.3.0] - 2026-06-04
 
 ### Changed

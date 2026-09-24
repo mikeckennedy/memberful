@@ -28,6 +28,7 @@ from memberful.webhooks import (
     SubscriptionPlanUpdatedEvent,
     SubscriptionRenewedEvent,
     SubscriptionUpdatedEvent,
+    UnsupportedEventError,
     WebhookEvent,
     parse_payload,
 )
@@ -225,7 +226,7 @@ def handle_webhook_event(event: WebhookEvent):
             handle_download_updated(event)
         case DownloadDeletedEvent():
             handle_download_deleted(event)
-        case _:  # type: ignore # noqa: PERF102
+        case _:  # noqa: PERF102
             print(f'📨 [UNKNOWN EVENT] Received webhook: {event.event}')
 
     print('-' * 60)
@@ -271,6 +272,12 @@ async def webhook_endpoint(request: Request):
             handle_webhook_event(webhook_event)
 
             return {'status': 'success', 'event_type': webhook_event.event, 'message': 'Webhook processed successfully'}
+
+        except UnsupportedEventError as e:
+            # Acknowledge events we don't model; a non-2xx makes Memberful retry and
+            # eventually delete the endpoint.
+            print(f'ℹ️ Ignoring unsupported event type: {e.event_type}')
+            return {'status': 'ignored', 'event_type': e.event_type, 'message': 'Unsupported event type'}
 
         except ValueError as e:
             print(f'❌ Failed to parse webhook event: {e}')
