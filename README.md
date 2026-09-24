@@ -9,14 +9,14 @@ A modern, type-safe Python SDK for integrating with [Memberful](https://memberfu
 ## ✨ Key Features
 
 - **🔒 Type Safety**: Full Pydantic model coverage for all API responses and webhook events
-- **🚀 Async First**: Built on `httpx` for high-performance async operations
+- **🚀 Async First**: Built on `httpx2` for high-performance async operations
 - **⚡ GraphQL Powered**: Efficient data fetching with Memberful's GraphQL API
 - **🔄 Resilient**: Smart retry logic with exponential backoff handles network hiccups and rate limits automatically
 - **📝 Auto-Complete Heaven**: Comprehensive type hints mean your IDE knows exactly what's available
 - **🎯 Zero Guesswork**: No more digging through API docs to figure out response formats
 - **🪝 Webhook Support**: Parse and validate webhook events with confidence
 - **📚 Rich Documentation**: Detailed examples and comprehensive API documentation
-- **🧪 Battle-Tested**: Extensive test suite ensures reliability
+- **🧪 Tested**: Test suite covering webhook parsing and the API data models
 - **🐍 Modern Python**: Supports Python 3.10+ with all the latest features
 
 ## 📦 Installation
@@ -38,8 +38,11 @@ uv add memberful
 ```python
 import memberful.api
 
-# Initialize the client
-async with memberful.api.MemberfulClient(api_key="YOUR_API_KEY") as client:
+# Initialize the client with your API key and your Memberful account's URL
+async with memberful.api.MemberfulClient(
+    api_key="YOUR_API_KEY",
+    base_url="https://youraccount.memberful.com",
+) as client:
     # Get all members with full type safety
     members = await client.get_all_members()
     
@@ -81,7 +84,7 @@ def handle_webhook(request_body: str, signature_header: str, webhook_secret: str
         case memberful.webhooks.MemberSignupEvent():
             print(f"New member: {event.member.email}")
         case memberful.webhooks.SubscriptionCreatedEvent():
-            print(f"New subscription for: {event.member.email}")
+            print(f"New subscription for: {event.subscription.member.email}")
         case _:
             print(f"Received {event.event} event")
 ```
@@ -109,14 +112,14 @@ Check out the [examples directory](examples/) for ready-to-run code:
 - ✅ Retrieve subscriptions with full plan details
 - ✅ Automatic pagination handling
 - ✅ **Smart retry logic** with exponential backoff (3 attempts, handles network errors)
-- ✅ Configurable timeouts and retries
+- ✅ Configurable request timeout
 - ✅ Type-safe responses with Pydantic models
 - ✅ Comprehensive error handling
 
 ### Webhook Features
 
 - ✅ Type-safe parsing of all webhook event types
-- ✅ Automatic signature verification
+- ✅ HMAC signature verification with `validate_signature()`
 - ✅ Support for 20 Memberful webhook events:
   - **Member events**: signup, updated, deleted
   - **Subscription events**: created, updated, activated, deactivated, deleted, renewed, reactivated
@@ -125,7 +128,6 @@ Check out the [examples directory](examples/) for ready-to-run code:
   - **Download events**: created, updated, deleted
 - ✅ Pydantic models for each event type
 - ✅ `UnsupportedEventError` for events not modeled here (`custom_fields.updated`, `tax_id.updated`), so you can acknowledge and ignore them
-- ✅ Helper functions for event handling
 
 ## 🏗️ Architecture
 
@@ -135,8 +137,7 @@ This SDK is built with modern Python best practices:
 - **Async/await** for efficient I/O operations
 - **Pydantic v2** for fast data validation and serialization
 - **Type hints** throughout for better IDE support
-- **Minimal dependencies** - just `httpx`, `pydantic`, and `stamina` for resilient retries
-- **100% test coverage** for reliability
+- **Minimal dependencies** - just `httpx2`, `pydantic`, and `stamina` for resilient retries
 
 ## 🧪 Testing
 
@@ -183,6 +184,9 @@ ruff format
 
 # Run linter
 ruff check
+
+# Type check
+uvx ty check
 ```
 
 ## 📊 Project Status
@@ -191,7 +195,7 @@ This SDK is under active development and currently supports:
 
 - ✅ Member operations (read)
 - ✅ Subscription operations (read)
-- ✅ All webhook event types
+- ✅ All documented webhook event types except `custom_fields.updated` and `tax_id.updated`
 - ✅ Signature verification
 - ⏳ Member operations (create/update) - coming soon
 - ✅ GraphQL API integration with automatic retries
