@@ -15,10 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `OrderStatus.REFUNDED`. Memberful documents `completed`, `suspended`, and `refunded`. `pending` and `cancelled` are kept for backwards compatibility.
   - `Order.status` is now `OrderStatus | str`. Known values still parse to `OrderStatus`, and a status Memberful adds later is kept as the raw string instead of failing validation.
 - **`Subscription.expires_at` is now optional** (`str | None`, default `None`), so subscriptions that never expire parse correctly.
+- **Corrected the 0.2.0 notes:** `tax_id.updated` and `custom_fields.updated` were listed as added, but they were never modeled. They now raise `UnsupportedEventError`.
 
 ### Added
 - **`subscription.reactivated` event** (`SubscriptionReactivatedEvent`), which Memberful introduced in August 2026 for members who reactivate a lapsed subscription. It has the same shape as `subscription.renewed`.
 - **`UnsupportedEventError`**, raised by `parse_payload()` for event types this package doesn't model, such as `custom_fields.updated` and `tax_id.updated`. It subclasses `ValueError`, so existing handlers still work. Catch it and return a 2xx to acknowledge and ignore those events.
+
+### Changed
+- **Examples updated to match the current webhook models.** Subscription events carry a single `subscription` with its `subscription_plan`, and optional fields like `plan.price` and `order.member` are checked before use. The FastAPI example now acknowledges unsupported events with a 2xx.
+- **README corrections:**
+  - The API Quick Start now passes `base_url`.
+  - The webhook Quick Start reads `event.subscription.member` for `SubscriptionCreatedEvent`.
+  - Stale claims are fixed: `httpx2` instead of `httpx`, only the request timeout is configurable, and the test coverage figures.
+- **Type checking with [ty](https://github.com/astral-sh/ty)** (`uvx ty check`), configured in `ty.toml`.
 
 ## [0.3.0] - 2026-06-04
 
@@ -29,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Imports use `import httpx2 as httpx`, so the public API and behavior of `MemberfulClient` are unchanged — no migration is required for consumers of this package.
   - Updated the FastAPI webhook example to match (`webhook_tester.py`, `requirements.piptools`, and the compiled `requirements.txt`).
 
-## [0.2.0] - 2025-01-27
+## [0.2.0] - 2025-09-24
 
 ### Enhanced
 - **Comprehensive webhook example** (`examples/basic_webhook_usage.py`)
@@ -49,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added missing webhook events: `tax_id.updated`, `custom_fields.updated`, `subscription.deactivated`, `order.purchased`, and `order.refunded`
   - Updated `WebhookEvent` union type to include all supported events
 
-## [0.1.0] - 2025-01-27
+## [0.1.0] - 2025-09-09
 
 ### Added
 - **Async Memberful API client** (`memberful.api.MemberfulClient`)
