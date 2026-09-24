@@ -240,6 +240,7 @@ class TestWebhookFunctions:
         event = parse_payload(payload)
         assert isinstance(event, OrderCompletedEvent)
         assert event.order.uuid == '4DACB7B0-B728-0130-F9E8-102B343DC979'
+        assert event.order.member is not None
         assert event.order.member.id == 12345
         assert len(event.order.subscriptions) == 1
 

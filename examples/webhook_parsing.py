@@ -49,20 +49,19 @@ def handle_webhook_event(event: WebhookEvent):
             print(f'   Came from: {event.member.tracking_params.utm_source}')
 
     elif isinstance(event, SubscriptionCreatedEvent):
-        print(f'💳 New subscription created for: {event.member.email}')
-        for sub in event.subscriptions:
-            plan = sub.subscription
-            print(f'   Plan: {plan.name} (${plan.price / 100:.2f})')
+        plan = event.subscription.subscription_plan
+        print(f'💳 New subscription created for: {event.subscription.member.email}')
+        print(f'   Plan: {plan.name} (${(plan.price or 0) / 100:.2f})')
 
     elif isinstance(event, OrderCompletedEvent):
         print(f'✅ Order completed: {event.order.number}')
         print(f'   Total: ${event.order.total / 100:.2f}')
-        print(f'   Member: {event.order.member.email}')
+        print(f'   Member: {event.order.member.email if event.order.member else "unknown"}')
 
     elif isinstance(event, SubscriptionPlanCreatedEvent):
         plan = event.subscription
         print(f'📋 New subscription plan created: {plan.name}')
-        print(f'   Price: ${plan.price / 100:.2f}/{plan.renewal_period}')
+        print(f'   Price: ${(plan.price or 0) / 100:.2f}/{plan.renewal_period}')
 
     elif isinstance(event, DownloadCreatedEvent):
         product = event.product
@@ -144,7 +143,7 @@ def main():
             print('Plan details:')
             print(f'  ID: {plan.id}')
             print(f'  Name: {plan.name}')
-            print(f'  Price: ${plan.price / 100:.2f}')
+            print(f'  Price: ${(plan.price or 0) / 100:.2f}')
             print(f'  Renewal: {plan.renewal_period}')
             print(f'  For sale: {plan.for_sale}')
 
