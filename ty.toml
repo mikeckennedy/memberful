@@ -1,0 +1,19 @@
+[environment]
+# Check against the oldest version in pyproject's requires-python so nothing
+# newer than 3.10 slips into the library.
+python-version = "3.10"
+# src/ layout: the package lives in src/memberful. "." lets tests/ and examples/ resolve too.
+root = ["src", "."]
+# Resolve third-party packages from venv/ rather than from an activated VIRTUAL_ENV, so a
+# non-activated shell (CI, a subprocess, an editor task) doesn't pick up the wrong site-packages.
+python = "venv"
+
+[src]
+exclude = [
+    "**/.*",
+    "**/__pycache__/**",
+    "**/venv/**",
+    "dist",
+    "plans",
+    "reference",
+]

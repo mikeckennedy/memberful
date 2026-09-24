@@ -55,12 +55,26 @@ from .models import (
     SubscriptionPlanCreatedEvent,
     SubscriptionPlanDeletedEvent,
     SubscriptionPlanUpdatedEvent,
+    SubscriptionReactivatedEvent,
     SubscriptionRenewedEvent,
     SubscriptionUpdatedEvent,
     TrackingParams,
     WebhookBaseModel,
     WebhookEvent,
 )
+
+
+class UnsupportedEventError(ValueError):
+    """Raised by parse_payload() for a well-formed event type this package doesn't model.
+
+    Examples include custom_fields.updated and tax_id.updated. Webhook endpoints should
+    catch this and still return a 2xx response. Memberful retries non-2xx responses and
+    eventually deletes endpoints that keep failing.
+    """
+
+    def __init__(self, event_type: Any) -> None:
+        self.event_type = event_type
+        super().__init__(f'Unsupported event type: {event_type}')
 
 
 def parse_payload(payload: dict[str, Any]) -> WebhookEvent:
@@ -76,7 +90,10 @@ def parse_payload(payload: dict[str, Any]) -> WebhookEvent:
         Parsed webhook event model (subclass of WebhookEvent)
 
     Raises:
-        ValueError: If the payload format is invalid or event type is unsupported
+        UnsupportedEventError: If the event type is not modeled by this package
+            (a ValueError subclass; acknowledge and ignore these)
+        pydantic.ValidationError: If the payload doesn't match the event's model
+            (also a ValueError subclass)
 
     Example:
         >>> payload = {"event": "member_signup", "member": {...}, ...}
@@ -106,6 +123,8 @@ def parse_payload(payload: dict[str, Any]) -> WebhookEvent:
             return SubscriptionDeletedEvent(**payload)
         case 'subscription.renewed':
             return SubscriptionRenewedEvent(**payload)
+        case 'subscription.reactivated':
+            return SubscriptionReactivatedEvent(**payload)
         case 'order.purchased':
             return OrderPurchasedEvent(**payload)
         case 'order.refunded':
@@ -127,7 +146,7 @@ def parse_payload(payload: dict[str, Any]) -> WebhookEvent:
         case 'download.deleted':
             return DownloadDeletedEvent(**payload)
         case _:
-            raise ValueError(f'Unsupported event type: {event_type}')
+            raise UnsupportedEventError(event_type)
 
 
 def validate_signature(payload: str, signature: str, secret_key: str) -> bool:
@@ -154,6 +173,8 @@ __all__ = [
     # Functions
     'parse_payload',
     'validate_signature',
+    # Exceptions
+    'UnsupportedEventError',
     # Base models and types
     'WebhookBaseModel',
     'WebhookEvent',
@@ -185,6 +206,7 @@ __all__ = [
     'SubscriptionDeactivatedEvent',
     'SubscriptionDeletedEvent',
     'SubscriptionRenewedEvent',
+    'SubscriptionReactivatedEvent',
     'OrderPurchasedEvent',
     'OrderRefundedEvent',
     'OrderCompletedEvent',

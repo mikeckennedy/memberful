@@ -28,6 +28,7 @@ from memberful.webhooks import (
     SubscriptionPlanUpdatedEvent,
     SubscriptionRenewedEvent,
     SubscriptionUpdatedEvent,
+    UnsupportedEventError,
     WebhookEvent,
     parse_payload,
 )
@@ -54,73 +55,69 @@ def handle_member_updated(event: MemberUpdatedEvent):
     """Handle member updated webhook events."""
     print(f'👤 [MEMBER UPDATED] Member updated: {event.member.email}')
     print(f'   Member ID: {event.member.id}')
-    print(f'   Active subscriptions: {len(event.subscriptions)}')
-    print(f'   Access to products: {len(event.products)}')
+    if event.changed:
+        print(f'   Changes detected: {event.changed}')
 
 
 def handle_member_deleted(event: MemberDeletedEvent):
     """Handle member deleted webhook events."""
     print(f'🗑️  [MEMBER DELETED] Member deleted: ID {event.member.id}')
     print(f'   Deleted: {event.member.deleted}')
-    print(f'   Active subscriptions: {len(event.subscriptions)}')
-    print(f'   Access to products: {len(event.products)}')
 
 
 def handle_subscription_created(event: SubscriptionCreatedEvent):
     """Handle subscription created webhook events."""
-    print(f'💳 [SUBSCRIPTION CREATED] New subscription for: {event.member.email}')
-    for sub in event.subscriptions:
-        plan = sub.subscription
-        print(f'   Plan: {plan.name} (${plan.price / 100:.2f})')
-        print(f'   Renewal: {plan.renewal_period}')
-        print(f'   Active: {sub.active}')
+    sub = event.subscription
+    plan = sub.subscription_plan
+    print(f'💳 [SUBSCRIPTION CREATED] New subscription for: {sub.member.email}')
+    print(f'   Plan: {plan.name} (${(plan.price or 0) / 100:.2f})')
+    print(f'   Renewal: {plan.renewal_period}')
+    print(f'   Active: {sub.active}')
 
 
 def handle_subscription_updated(event: SubscriptionUpdatedEvent):
     """Handle subscription updated webhook events."""
-    print(f'🔄 [SUBSCRIPTION UPDATED] Subscription updated for: {event.member.email}')
-    for sub in event.subscriptions:
-        plan = sub.subscription
-        print(f'   Plan: {plan.name} (${plan.price / 100:.2f})')
-        print(f'   Active: {sub.active}')
+    sub = event.subscription
+    plan = sub.subscription_plan
+    print(f'🔄 [SUBSCRIPTION UPDATED] Subscription updated for: {sub.member.email}')
+    print(f'   Plan: {plan.name} (${(plan.price or 0) / 100:.2f})')
+    print(f'   Active: {sub.active}')
     if event.changed:
         print(f'   Changes detected: {event.changed}')
 
 
 def handle_subscription_activated(event: SubscriptionActivatedEvent):
     """Handle subscription activated webhook events."""
-    print('✅ [SUBSCRIPTION ACTIVATED] Subscription activated')
-    print(f'   Active subscriptions: {len(event.subscriptions)}')
-    for sub in event.subscriptions:
-        plan = sub.subscription
-        print(f'   Plan: {plan.name} (${plan.price / 100:.2f})')
-        print(f'   Active: {sub.active}')
+    sub = event.subscription
+    plan = sub.subscription_plan
+    print(f'✅ [SUBSCRIPTION ACTIVATED] Subscription activated for: {sub.member.email}')
+    print(f'   Plan: {plan.name} (${(plan.price or 0) / 100:.2f})')
+    print(f'   Active: {sub.active}')
 
 
 def handle_subscription_deleted(event: SubscriptionDeletedEvent):
     """Handle subscription deleted webhook events."""
-    print('🗑️  [SUBSCRIPTION DELETED] Subscription deleted')
-    print(f'   Deleted subscriptions: {len(event.subscriptions)}')
-    for sub in event.subscriptions:
-        plan = sub.subscription
-        print(f'   Plan: {plan.name} (${plan.price / 100:.2f})')
+    sub = event.subscription
+    plan = sub.subscription_plan
+    print(f'🗑️  [SUBSCRIPTION DELETED] Subscription deleted for: {sub.member.email}')
+    print(f'   Plan: {plan.name} (${(plan.price or 0) / 100:.2f})')
 
 
 def handle_subscription_renewed(event: SubscriptionRenewedEvent):
     """Handle subscription renewed webhook events."""
-    print('🔄 [SUBSCRIPTION RENEWED] Subscription renewed')
-    print(f'   Renewed subscriptions: {len(event.subscriptions)}')
-    for sub in event.subscriptions:
-        plan = sub.subscription
-        print(f'   Plan: {plan.name} (${plan.price / 100:.2f})')
-        print(f'   Active: {sub.active}')
+    sub = event.subscription
+    plan = sub.subscription_plan
+    print(f'🔄 [SUBSCRIPTION RENEWED] Subscription renewed for: {sub.member.email}')
+    print(f'   Plan: {plan.name} (${(plan.price or 0) / 100:.2f})')
+    print(f'   Active: {sub.active}')
+    print(f'   Order total: ${event.order.total / 100:.2f}')
 
 
 def handle_order_completed(event: OrderCompletedEvent):
     """Handle order completed webhook events."""
     print(f'✅ [ORDER COMPLETED] Order completed: {event.order.number}')
     print(f'   Total: ${event.order.total / 100:.2f}')
-    print(f'   Member: {event.order.member.email}')
+    print(f'   Member: {event.order.member.email if event.order.member else "unknown"}')
     print(f'   Status: {event.order.status}')
     print(f'   Products: {len(event.order.products)}')
 
@@ -129,7 +126,7 @@ def handle_order_suspended(event: OrderSuspendedEvent):
     """Handle order suspended webhook events."""
     print(f'⏸️  [ORDER SUSPENDED] Order suspended: {event.order.number}')
     print(f'   Total: ${event.order.total / 100:.2f}')
-    print(f'   Member: {event.order.member.email}')
+    print(f'   Member: {event.order.member.email if event.order.member else "unknown"}')
     print(f'   Status: {event.order.status}')
 
 
@@ -137,7 +134,7 @@ def handle_subscription_plan_created(event: SubscriptionPlanCreatedEvent):
     """Handle subscription plan created webhook events."""
     plan = event.subscription
     print(f'📋 [PLAN CREATED] New subscription plan: {plan.name}')
-    print(f'   Price: ${plan.price / 100:.2f}/{plan.renewal_period}')
+    print(f'   Price: ${(plan.price or 0) / 100:.2f}/{plan.renewal_period}')
     print(f'   Slug: {plan.slug}')
     print(f'   For sale: {plan.for_sale}')
 
@@ -146,7 +143,7 @@ def handle_subscription_plan_updated(event: SubscriptionPlanUpdatedEvent):
     """Handle subscription plan updated webhook events."""
     plan = event.subscription
     print(f'📝 [PLAN UPDATED] Subscription plan updated: {plan.name}')
-    print(f'   Price: ${plan.price / 100:.2f}/{plan.renewal_period}')
+    print(f'   Price: ${(plan.price or 0) / 100:.2f}/{plan.renewal_period}')
     print(f'   Slug: {plan.slug}')
     print(f'   For sale: {plan.for_sale}')
 
@@ -155,7 +152,7 @@ def handle_subscription_plan_deleted(event: SubscriptionPlanDeletedEvent):
     """Handle subscription plan deleted webhook events."""
     plan = event.subscription
     print(f'🗑️  [PLAN DELETED] Subscription plan deleted: {plan.name}')
-    print(f'   Former price: ${plan.price / 100:.2f}/{plan.renewal_period}')
+    print(f'   Former price: ${(plan.price or 0) / 100:.2f}/{plan.renewal_period}')
     print(f'   Slug: {plan.slug}')
 
 
@@ -225,7 +222,7 @@ def handle_webhook_event(event: WebhookEvent):
             handle_download_updated(event)
         case DownloadDeletedEvent():
             handle_download_deleted(event)
-        case _:  # type: ignore # noqa: PERF102
+        case _:  # noqa: PERF102
             print(f'📨 [UNKNOWN EVENT] Received webhook: {event.event}')
 
     print('-' * 60)
@@ -271,6 +268,12 @@ async def webhook_endpoint(request: Request):
             handle_webhook_event(webhook_event)
 
             return {'status': 'success', 'event_type': webhook_event.event, 'message': 'Webhook processed successfully'}
+
+        except UnsupportedEventError as e:
+            # Acknowledge events we don't model; a non-2xx makes Memberful retry and
+            # eventually delete the endpoint.
+            print(f'ℹ️ Ignoring unsupported event type: {e.event_type}')
+            return {'status': 'ignored', 'event_type': e.event_type, 'message': 'Unsupported event type'}
 
         except ValueError as e:
             print(f'❌ Failed to parse webhook event: {e}')

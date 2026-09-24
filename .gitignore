@@ -168,3 +168,4 @@ cython_debug/
 ehthumbs.db
 Thumbs.db
 settings.json
+uv.lock

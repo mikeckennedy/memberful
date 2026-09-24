@@ -54,7 +54,7 @@ def handle_member_signup(event: MemberSignupEvent):
 
 def handle_subscription_created(event: SubscriptionCreatedEvent):
     """Handle subscription created events."""
-    print(f'New subscription created for member: {event.member.id}')
+    print(f'New subscription created for member: {event.subscription.member.id}')
     # Add your custom logic here
 
 
