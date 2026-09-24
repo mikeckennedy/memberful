@@ -7,7 +7,7 @@ webhook data variations.
 """
 
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any, Optional, TypeAlias, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -456,7 +456,7 @@ class OrderRefundedEvent(WebhookBaseModel):
 
 
 # Union type for all webhook events
-WebhookEvent = (
+WebhookEvent: TypeAlias = (
     MemberSignupEvent
     | MemberUpdatedEvent
     | MemberDeletedEvent

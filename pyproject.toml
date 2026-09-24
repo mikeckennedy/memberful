@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "memberful"
-version = "0.3.1"
+version = "0.3.2"
 description = "Memberful service Python client for webhooks and API"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -27,6 +27,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
 ]
 keywords = ["memberful", "webhooks", "api", "membership", "subscription"]
 dependencies = [

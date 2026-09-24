@@ -27,7 +27,7 @@ class MemberfulClient:
     request_timeout_in_seconds: float = 20.0
     """Client for interacting with the Memberful API."""
 
-    def __init__(self, api_key: str, base_url: str = 'https://youraccount.memberful.com', timeout: float = 30.0):
+    def __init__(self, api_key: str, base_url: str = 'https://youraccount.memberful.com', timeout: float = 30.0) -> None:
         """Initialize the Memberful client.
 
         Args:
@@ -38,7 +38,7 @@ class MemberfulClient:
         self.config = MemberfulClientConfig(api_key=api_key, base_url=base_url, timeout=timeout)
         self._client: Optional[httpx.AsyncClient] = None
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> 'MemberfulClient':
         """Async context manager entry."""
         await self._ensure_client()
         return self
@@ -656,8 +656,20 @@ class MemberfulClient:
 
         return all_subscriptions
 
-    async def close(self):
+    async def close(self) -> None:
         """Close the HTTP client."""
         if self._client:
             await self._client.aclose()
             self._client = None
+
+
+__all__ = [
+    # Client
+    'MemberfulClient',
+    'MemberfulClientConfig',
+    # Models returned by the client
+    'Member',
+    'MembersResponse',
+    'Subscription',
+    'SubscriptionsResponse',
+]

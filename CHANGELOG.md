@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-09-24
+
+### Added
+- **`py.typed` marker (PEP 561)**, so type checkers use memberful's inline annotations and consumers no longer need their own stubs. The package now has the `Typing :: Typed` classifier, and a test checks that the marker ships.
+
+### Fixed
+- **Public API annotations completed now that they're read downstream:**
+  - `MemberfulClient.__aenter__()` returns `MemberfulClient`, so `async with MemberfulClient(...) as client` gives a typed `client`.
+  - `MemberfulClient.__init__()` and `close()` are annotated to return `None`.
+  - `memberful.api` has an `__all__`, so `Member`, `Subscription`, `MembersResponse` and `SubscriptionsResponse` are public re-exports and pyright doesn't report them as private imports.
+  - `WebhookEvent` is declared as an explicit `TypeAlias`.
+
 ## [0.3.1] - 2026-09-24
 
 ### Fixed
