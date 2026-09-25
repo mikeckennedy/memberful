@@ -41,7 +41,7 @@ Run all of these (tests, ruff, ty) before calling a change done.
 ## Code style
 
 - **Python 3.10 is the floor** (`requires-python = ">=3.10"`). ty checks against 3.10 (`ty.toml`), so don't use newer syntax or stdlib APIs in `src/`, even though the dev venv is 3.13.
-- **Formatting comes from `ruff.toml`** (it overrides the `[tool.ruff]` section in `pyproject.toml`): 120-char lines, single quotes.
+- **Formatting comes from `ruff.toml`**: 120-char lines, single quotes.
 - **Optionals and unions:** write `Optional[X]` and `Union[A, B]` to match the existing code, not `X | None`. Use builtin generics (`list[int]`, `dict[str, Any]`).
 - **Full type annotations on everything public.** The package ships `py.typed`, so downstream type checkers read these annotations.
 - Prefer guard clauses and early returns over nested conditionals.

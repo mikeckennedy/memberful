@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`MemberfulClient` sends the real package version in its User-Agent.** It was hard-coded as `memberful-python/0.1.0`, and it now uses `memberful.__version__`.
+
+### Removed
+- **mypy dropped from the `dev` extras**, along with the unused `[tool.mypy]` and `[tool.ruff]` sections in `pyproject.toml`. ty (`ty.toml`) and `ruff.toml` are the configs in use.
+
 ## [0.3.2] - 2026-09-24
 
 ### Added

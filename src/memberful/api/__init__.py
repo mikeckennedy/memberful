@@ -7,6 +7,7 @@ import httpx2 as httpx
 import stamina
 from pydantic import BaseModel
 
+from .. import __version__
 from .models import (
     Member,
     MembersResponse,
@@ -27,7 +28,9 @@ class MemberfulClient:
     request_timeout_in_seconds: float = 20.0
     """Client for interacting with the Memberful API."""
 
-    def __init__(self, api_key: str, base_url: str = 'https://youraccount.memberful.com', timeout: float = 30.0) -> None:
+    def __init__(
+        self, api_key: str, base_url: str = 'https://youraccount.memberful.com', timeout: float = 30.0
+    ) -> None:
         """Initialize the Memberful client.
 
         Args:
@@ -55,7 +58,7 @@ class MemberfulClient:
             headers = {
                 'Authorization': f'Bearer {self.config.api_key}',
                 'Content-Type': 'application/json',
-                'User-Agent': 'memberful-python/0.1.0',
+                'User-Agent': f'memberful-python/{__version__}',
             }
             self._client = httpx.AsyncClient(
                 base_url=self.config.base_url,
