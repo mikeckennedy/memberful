@@ -21,8 +21,24 @@ Our implementation uses the actual Memberful GraphQL schema with these key chara
 
 - **Field Names**: Uses camelCase as per GraphQL conventions (e.g., `fullName`, `stripeCustomerId`, `unrestrictedAccess`)
 - **Cursor Pagination**: Implements proper GraphQL connection patterns with `edges`, `nodes`, and `pageInfo`
-- **Available Fields**: Only includes fields actually available in the schema (some fields like `createdAt` on Member, `signupMethod`, and `inTrialPeriod` are not available)
-- **Plan Structure**: Uses `intervalUnit` and `intervalCount` for billing intervals, plus `price` and `renewalPeriod` for pricing
+- **Shared fragments, not hand-copied field lists**: `api/__init__.py` builds every query from three
+  fragments it exports - `PLAN_FIELDS_FRAGMENT`, `MEMBER_FIELDS_FRAGMENT`,
+  `SUBSCRIPTION_FIELDS_FRAGMENT` - so the "GraphQL Equivalent" examples below are illustrative;
+  treat those three constants as the actual source of truth for what's selected today.
+- **Available Fields** (verified 2026-09-25 by introspecting `talkpython.memberful.com`, deprecated
+  fields included): `Member` has no `createdAt`, `updatedAt`, `firstName`, `lastName`,
+  `signupMethod`, `deactivated` or `confirmedAt` - only `fullName`, not separate name parts, and no
+  timestamp/status fields at all (subscription status lives on `Subscription.active`, not on
+  `Member`). `Subscription` has no scalar `memberId`, `couponCode`, `expires`, `inTrialPeriod` or
+  `updatedAt` - only the relations `member { ... }` (now selected) and `coupon { code ... }`
+  (not yet modeled). These stay `Optional`/always-`None` in `memberful.api.models` rather than
+  being removed, so a schema addition later doesn't require a breaking model change.
+- **Plan Structure**: `Plan` has **no `price` field at all** - only `priceCents` - and keeps `name`
+  only as a deprecated alias for `label` ("Use `pass { name }` instead", but still queryable). The
+  package selects `price: priceCents` (a GraphQL field alias) so `Plan.price: int`, a required
+  model field, is always populated without changing the model's public shape. There is no
+  `description` or `renewalPeriod` field either (real fields are `renewalDay`/`renewalMonth`,
+  a different shape); `renewal_period`/`description` stay `Optional`/always-`None` on `Plan`.
 - **Address Fields**: Uses `street` instead of separate `addressLine1`/`addressLine2` fields
 
 ## Getting Started
@@ -636,7 +652,7 @@ print(f"Page {response.current_page} of {response.total_pages}")
 
 ### Current Limitations
 - **Limited Operations**: Only supports read operations (queries), no mutations yet
-- **Schema Restrictions**: Some fields like `createdAt`, `signupMethod`, and `inTrialPeriod` are not available in the current GraphQL schema
+- **Schema Restrictions**: see "Available Fields" and "Plan Structure" under GraphQL Schema Alignment above for exactly which model fields have no schema equivalent and always come back `None`
 - **Pagination Metadata**: Total count information is estimated based on `hasNextPage` rather than exact counts
 - **No Custom Fields**: Custom field data access not yet implemented
 

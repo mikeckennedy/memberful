@@ -15,6 +15,150 @@ from .models import (
     SubscriptionsResponse,
 )
 
+PLAN_FIELDS_FRAGMENT = """
+fragment PlanFields on Plan {
+    id
+    name
+    price: priceCents
+    slug
+    intervalUnit
+    intervalCount
+    forSale
+}
+"""
+
+MEMBER_FIELDS_FRAGMENT = """
+fragment MemberFields on Member {
+    id
+    email
+    fullName
+    username
+    phoneNumber
+    stripeCustomerId
+    discordUserId
+    unrestrictedAccess
+    address {
+        city
+        country
+        state
+        postalCode
+        street
+    }
+}
+"""
+
+SUBSCRIPTION_FIELDS_FRAGMENT = """
+fragment SubscriptionFields on Subscription {
+    id
+    active
+    createdAt
+    expiresAt
+    activatedAt
+    trialEndAt
+    trialStartAt
+    autorenew
+    plan {
+        ...PlanFields
+    }
+    member {
+        ...MemberFields
+    }
+}
+"""
+
+# One shared fragment per GraphQL type (Plan, Member, Subscription), so every query below selects
+# the same fields the same way instead of drifting apart. Field names and nullability were checked
+# against models.py's requirements and against Memberful's live schema (talkpython.memberful.com,
+# introspected 2026-09-25); `price: priceCents` is a GraphQL alias because Plan.price is a required
+# model field but Memberful's schema has no `price` field, only `priceCents`. See models.py's Plan
+# and Subscription docstrings/comments for the fields Memberful's schema doesn't have at all.
+_GRAPHQL_FRAGMENTS = PLAN_FIELDS_FRAGMENT + MEMBER_FIELDS_FRAGMENT + SUBSCRIPTION_FIELDS_FRAGMENT
+
+_GET_MEMBERS_QUERY = (
+    _GRAPHQL_FRAGMENTS
+    + """
+query GetMembers($first: Int!, $after: String) {
+    members(first: $first, after: $after) {
+        edges {
+            node {
+                ...MemberFields
+                subscriptions {
+                    ...SubscriptionFields
+                }
+            }
+            cursor
+        }
+        pageInfo {
+            hasNextPage
+            hasPreviousPage
+            startCursor
+            endCursor
+        }
+    }
+}
+"""
+)
+
+_GET_MEMBER_QUERY = (
+    _GRAPHQL_FRAGMENTS
+    + """
+query GetMember($id: ID!) {
+    member(id: $id) {
+        ...MemberFields
+        subscriptions {
+            ...SubscriptionFields
+        }
+    }
+}
+"""
+)
+
+_GET_MEMBER_SUBSCRIPTIONS_QUERY = (
+    _GRAPHQL_FRAGMENTS
+    + """
+query GetMemberSubscriptions($memberId: ID!, $first: Int!, $after: String) {
+    member(id: $memberId) {
+        subscriptions(first: $first, after: $after) {
+            edges {
+                node {
+                    ...SubscriptionFields
+                }
+                cursor
+            }
+            pageInfo {
+                hasNextPage
+                hasPreviousPage
+                startCursor
+                endCursor
+            }
+        }
+    }
+}
+"""
+)
+
+_GET_ALL_SUBSCRIPTIONS_QUERY = (
+    _GRAPHQL_FRAGMENTS
+    + """
+query GetAllSubscriptions($first: Int!, $after: String) {
+    subscriptions(first: $first, after: $after) {
+        edges {
+            node {
+                ...SubscriptionFields
+            }
+            cursor
+        }
+        pageInfo {
+            hasNextPage
+            hasPreviousPage
+            startCursor
+            endCursor
+        }
+    }
+}
+"""
+)
+
 
 class MemberfulClientConfig(BaseModel):
     """Configuration for the Memberful client."""
@@ -129,51 +273,6 @@ class MemberfulClient:
             # For now, let's use None and handle pagination differently
             pass
 
-        query = """
-        query GetMembers($first: Int!, $after: String) {
-            members(first: $first, after: $after) {
-                edges {
-                    node {
-                        id
-                        email
-                        fullName
-                        username
-                        stripeCustomerId
-                        unrestrictedAccess
-                        address {
-                            city
-                            country
-                            state
-                            postalCode
-                            street
-                        }
-                        subscriptions {
-                            id
-                            active
-                            createdAt
-                            expiresAt
-                            trialEndAt
-                            plan {
-                                id
-                                name
-                                intervalUnit
-                                intervalCount
-                                slug
-                            }
-                        }
-                    }
-                    cursor
-                }
-                pageInfo {
-                    hasNextPage
-                    hasPreviousPage
-                    startCursor
-                    endCursor
-                }
-            }
-        }
-        """
-
         variables = {'first': per_page, 'after': cursor}
 
         async for attempt in stamina.retry_context(
@@ -182,7 +281,7 @@ class MemberfulClient:
             timeout=self.request_timeout_in_seconds,
         ):
             with attempt:
-                data = await self._graphql_request(query, variables)
+                data = await self._graphql_request(_GET_MEMBERS_QUERY, variables)
                 members_data = data.get('members', {})
 
                 # Transform GraphQL response to match our expected format
@@ -233,51 +332,6 @@ class MemberfulClient:
         has_next_page = True
 
         while has_next_page:
-            query = """
-            query GetMembers($first: Int!, $after: String) {
-                members(first: $first, after: $after) {
-                    edges {
-                        node {
-                            id
-                            email
-                            fullName
-                            username
-                            stripeCustomerId
-                            unrestrictedAccess
-                            address {
-                                city
-                                country
-                                state
-                                postalCode
-                                street
-                            }
-                            subscriptions {
-                                id
-                                active
-                                createdAt
-                                expiresAt
-                                trialEndAt
-                                plan {
-                                    id
-                                    name
-                                    intervalUnit
-                                    intervalCount
-                                    slug
-                                }
-                            }
-                        }
-                        cursor
-                    }
-                    pageInfo {
-                        hasNextPage
-                        hasPreviousPage
-                        startCursor
-                        endCursor
-                    }
-                }
-            }
-            """
-
             variables = {'first': per_page, 'after': cursor}
 
             async for attempt in stamina.retry_context(
@@ -286,7 +340,7 @@ class MemberfulClient:
                 timeout=self.request_timeout_in_seconds,
             ):
                 with attempt:
-                    data = await self._graphql_request(query, variables)
+                    data = await self._graphql_request(_GET_MEMBERS_QUERY, variables)
                     members_data = data.get('members', {})
 
                     # Extract members from edges
@@ -328,40 +382,6 @@ class MemberfulClient:
         Returns:
             Member object containing member data
         """
-        query = """
-        query GetMember($id: ID!) {
-            member(id: $id) {
-                id
-                email
-                fullName
-                username
-                stripeCustomerId
-                unrestrictedAccess
-                address {
-                    city
-                    country
-                    state
-                    postalCode
-                    street
-                }
-                subscriptions {
-                    id
-                    active
-                    createdAt
-                    expiresAt
-                    trialEndAt
-                    plan {
-                        id
-                        name
-                        intervalUnit
-                        intervalCount
-                        slug
-                    }
-                }
-            }
-        }
-        """
-
         variables = {'id': str(member_id)}
 
         async for attempt in stamina.retry_context(
@@ -370,7 +390,7 @@ class MemberfulClient:
             timeout=self.request_timeout_in_seconds,
         ):
             with attempt:
-                data = await self._graphql_request(query, variables)
+                data = await self._graphql_request(_GET_MEMBER_QUERY, variables)
                 member_data = data.get('member')
 
                 if not member_data:
@@ -406,79 +426,11 @@ class MemberfulClient:
 
         if member_id:
             # Get subscriptions for specific member
-            query = """
-            query GetMemberSubscriptions($memberId: ID!, $first: Int!, $after: String) {
-                member(id: $memberId) {
-                    subscriptions(first: $first, after: $after) {
-                        edges {
-                            node {
-                                id
-                                active
-                                createdAt
-                                expiresAt
-                                trialEndAt
-                                plan {
-                                    id
-                                    name
-                                    intervalUnit
-                                    intervalCount
-                                    slug
-                                }
-                                member {
-                                    id
-                                    email
-                                    fullName
-                                }
-                            }
-                            cursor
-                        }
-                        pageInfo {
-                            hasNextPage
-                            hasPreviousPage
-                            startCursor
-                            endCursor
-                        }
-                    }
-                }
-            }
-            """
+            query = _GET_MEMBER_SUBSCRIPTIONS_QUERY
             variables = {'memberId': str(member_id), 'first': per_page, 'after': cursor}
         else:
             # Get all subscriptions
-            query = """
-            query GetAllSubscriptions($first: Int!, $after: String) {
-                subscriptions(first: $first, after: $after) {
-                    edges {
-                        node {
-                            id
-                            active
-                            createdAt
-                            expiresAt
-                            trialEndAt
-                            plan {
-                                id
-                                name
-                                intervalUnit
-                                intervalCount
-                                slug
-                            }
-                            member {
-                                id
-                                email
-                                fullName
-                            }
-                        }
-                        cursor
-                    }
-                    pageInfo {
-                        hasNextPage
-                        hasPreviousPage
-                        startCursor
-                        endCursor
-                    }
-                }
-            }
-            """
+            query = _GET_ALL_SUBSCRIPTIONS_QUERY
             variables = {'first': per_page, 'after': cursor}
 
         async for attempt in stamina.retry_context(
@@ -544,79 +496,11 @@ class MemberfulClient:
         while has_next_page:
             if member_id:
                 # Get subscriptions for specific member
-                query = """
-                query GetMemberSubscriptions($memberId: ID!, $first: Int!, $after: String) {
-                    member(id: $memberId) {
-                        subscriptions(first: $first, after: $after) {
-                            edges {
-                                node {
-                                    id
-                                    active
-                                    createdAt
-                                    expiresAt
-                                    trialEndAt
-                                    plan {
-                                        id
-                                        name
-                                        intervalUnit
-                                        intervalCount
-                                        slug
-                                    }
-                                    member {
-                                        id
-                                        email
-                                        fullName
-                                    }
-                                }
-                                cursor
-                            }
-                            pageInfo {
-                                hasNextPage
-                                hasPreviousPage
-                                startCursor
-                                endCursor
-                            }
-                        }
-                    }
-                }
-                """
+                query = _GET_MEMBER_SUBSCRIPTIONS_QUERY
                 variables = {'memberId': str(member_id), 'first': per_page, 'after': cursor}
             else:
                 # Get all subscriptions
-                query = """
-                query GetAllSubscriptions($first: Int!, $after: String) {
-                    subscriptions(first: $first, after: $after) {
-                        edges {
-                            node {
-                                id
-                                active
-                                createdAt
-                                expiresAt
-                                trialEndAt
-                                plan {
-                                    id
-                                    name
-                                    intervalUnit
-                                    intervalCount
-                                    slug
-                                }
-                                member {
-                                    id
-                                    email
-                                    fullName
-                                }
-                            }
-                            cursor
-                        }
-                        pageInfo {
-                            hasNextPage
-                            hasPreviousPage
-                            startCursor
-                            endCursor
-                        }
-                    }
-                }
-                """
+                query = _GET_ALL_SUBSCRIPTIONS_QUERY
                 variables = {'first': per_page, 'after': cursor}
 
             async for attempt in stamina.retry_context(

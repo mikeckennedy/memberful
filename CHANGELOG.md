@@ -7,11 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-09-25
+
 ### Fixed
+- **`MemberfulClient`'s GraphQL queries now select the fields `memberful.api.models` actually requires or that consumers need** (`get_members`, `get_all_members`, `get_member`, `get_subscriptions`, `get_all_subscriptions`). A talkpython.fm reconciliation job hit this directly:
+  - **Every plan selection was missing `price`**, and `Plan.price: int` has no default - so parsing any subscription that has a plan raised `pydantic.ValidationError`, unconditionally. Memberful's live schema has no `price` field at all (confirmed by introspecting talkpython.memberful.com), only `priceCents`, so the fix is a GraphQL alias: `price: priceCents`.
+  - `Subscription.autorenew`, `Subscription.activatedAt` (new field, see Added) and `Member.discordUserId`/`Member.phoneNumber` were never selected and were always `None`.
+  - Field names and nullability were checked against Memberful's live schema, including deprecated fields, not just the API docs (`reference/api.md` turned out to be stale: it claimed `createdAt` isn't available on `Member` and `signupMethod`/`inTrialPeriod` aren't in the schema at all - the first is simply not true for `Subscription.createdAt`, and the schema genuinely has no `Member.createdAt`, `firstName`, `lastName`, `signupMethod`, `deactivated` or `confirmedAt` at all - those model fields stay `Optional`/always-`None` and are now documented as such in `models.py`).
+- **`pytest.ini` used the section header `[tool:pytest]`**, which is only meaningful in `setup.cfg` - a file literally named `pytest.ini` must use `[pytest]`. As a result *none* of `addopts` was ever applied: `--verbose`, `--strict-markers`, `--tb=short`, and critically `--cov-fail-under=80` were all silently ignored, so the documented coverage gate had never actually run. Fixed to `[pytest]`; the gate is enforced starting with this release's test additions (97% coverage).
 - **`MemberfulClient` sends the real package version in its User-Agent.** It was hard-coded as `memberful-python/0.1.0`, and it now uses `memberful.__version__`.
 
-### Removed
-- **mypy dropped from the `dev` extras**, along with the unused `[tool.mypy]` and `[tool.ruff]` sections in `pyproject.toml`. ty (`ty.toml`) and `ruff.toml` are the configs in use.
+### Added
+- **One shared GraphQL fragment per type** - `PLAN_FIELDS_FRAGMENT`, `MEMBER_FIELDS_FRAGMENT`, `SUBSCRIPTION_FIELDS_FRAGMENT`, exported from `memberful.api` - used by every query that touches that type, so the five query-building call sites (previously four separate hand-copied, drifted selections) can't drift apart again.
+- **`Subscription.activated_at`** (`activatedAt` in the schema): when a trial converted or a subscription started. Selected by default; needed for tenure backfill alongside `created_at`.
+- **`Subscription.member`**: the subscription's owning `Member`, populated when a query selects it (now true for all five client methods). Previously the query fetched a partial `member { id email fullName }` node that the model had nowhere to put, so it was silently discarded.
+- **Contract tests** (`tests/test_graphql_fields.py`, `tests/graphql_contract.py`) that parse the actual fragment strings the client sends - not a hand-maintained field list - build a fake response node with exactly those keys/aliases, and feed it to the matching pydantic model. A required field dropped from a fragment, or an alias like `price: priceCents` removed, now fails a test immediately instead of only surfacing as a `ValidationError` against real subscriber data.
+
+### Changed
+- **`Subscription.created_at` is now `Optional[int]`** (was required, no default). Memberful's schema declares `createdAt` as a nullable `Int` - the same over-strictness that caused the `Plan.price` crash above, applied defensively here before it causes the same kind of outage.
 
 ## [0.3.2] - 2026-09-24
 
