@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-26
+
+### Fixed
+- **`get_members(page=N)` and `get_subscriptions(page=N)` ignored `page` and always returned page 1**, labelled as page N. A caller looping `page=1..total_pages` got the first page over and over. Memberful's GraphQL API is cursor-only, so page numbers can't be honored. Passing `page > 1` without a cursor now raises `ValueError` instead of returning the wrong data.
+- **Retries never advance the cursor.** Each page is fetched and retried as a unit, and the cursor moves forward only after that page succeeds.
+
+### Added
+- **`after` argument on `get_members()` and `get_subscriptions()`**, plus **`end_cursor` and `has_next_page` on `MembersResponse` and `SubscriptionsResponse`**. Pass one page's `end_cursor` as the next call's `after`.
+- **`iter_members(per_page=100, after=None)` and `iter_subscriptions(member_id=None, per_page=100, after=None)`**, async generators that yield one response per page and fetch lazily, so large accounts don't have to hold everyone in memory. They can resume from a saved cursor.
+
+### Changed
+- **`total_count` and `total_pages` are now always `None`.** They were estimates (`len(page) + per_page`, `page + 1`) presented as counts, and Memberful's API reports no totals. The fields stay on the models so attribute access still works.
+- **`current_page` is `None` unless you pass the deprecated `page` argument.**
+- **`get_all_members()` and `get_all_subscriptions()` are built on the new generators.** Results are unchanged. They still pause 0.25s between pages but no longer sleep after the last one.
+
+### Deprecated
+- **The `page` argument of `get_members()` and `get_subscriptions()`** emits `DeprecationWarning`. Use `after` or the `iter_*` generators.
+
 ## [0.3.3] - 2026-09-25
 
 ### Fixed

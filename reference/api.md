@@ -93,11 +93,15 @@ API keys are generated from your Memberful dashboard under **Settings → Custom
 
 Retrieve a paginated list of all members.
 
-**Method**: `client.get_members(page=1, per_page=100)`
+**Method**: `client.get_members(per_page=100, after=None)`
 
 **Returns**: `MembersResponse` - A typed Pydantic model containing:
 - `members`: List of `Member` objects
-- `total_count`, `total_pages`, `current_page`, `per_page`: Pagination metadata (optional)
+- `end_cursor`: Cursor to pass as `after` for the next page
+- `has_next_page`: Whether another page exists
+- `per_page`: The page size requested
+- `total_count`, `total_pages`: Always `None` (Memberful's API doesn't report totals); kept for compatibility
+- `current_page`: Echoes the deprecated `page` argument, otherwise `None`
 
 **GraphQL Equivalent**:
 ```graphql
@@ -146,14 +150,21 @@ query GetMembers($first: Int!, $after: String) {
 ```
 
 **Parameters**:
-- `page` (int): Page number, starting from 1
 - `per_page` (int): Number of members per page (max 100)
+- `after` (str, optional): The previous page's `end_cursor`; omit for the first page
+- `page` (int, deprecated): Emits `DeprecationWarning`. `page > 1` without `after` raises `ValueError`, because the API has no offsets
+
+To walk every page lazily, use `client.iter_members(per_page=100)`, an async generator of `MembersResponse` pages (see Pagination below).
 
 **Example Usage**:
 ```python
 async with MemberfulClient(api_key="your_key") as client:
     # Get first page of members (returns MembersResponse)
-    response = await client.get_members(page=1, per_page=50)
+    response = await client.get_members(per_page=50)
+
+    # Next page: pass the cursor back
+    if response.has_next_page:
+        next_page = await client.get_members(per_page=50, after=response.end_cursor)
     
     # Access members with full type safety
     print(f"Found {len(response.members)} members")
@@ -295,11 +306,12 @@ async with MemberfulClient(api_key="your_key") as client:
 
 Retrieve subscriptions, optionally filtered by member.
 
-**Method**: `client.get_subscriptions(member_id=None, page=1, per_page=100)`
+**Method**: `client.get_subscriptions(member_id=None, per_page=100, after=None)`
 
 **Returns**: `SubscriptionsResponse` - A typed Pydantic model containing:
 - `subscriptions`: List of `Subscription` objects
-- `total_count`, `total_pages`, `current_page`, `per_page`: Pagination metadata (optional)
+- `end_cursor`, `has_next_page`, `per_page`: Cursor pagination, as for `get_members`
+- `total_count`, `total_pages`: Always `None`; `current_page` echoes the deprecated `page` argument
 
 **GraphQL Equivalent**:
 ```graphql
@@ -339,14 +351,17 @@ query GetAllSubscriptions($first: Int!, $after: String) {
 
 **Parameters**:
 - `member_id` (int, optional): Filter subscriptions for specific member
-- `page` (int): Page number, starting from 1
 - `per_page` (int): Number of subscriptions per page (max 100)
+- `after` (str, optional): The previous page's `end_cursor`; omit for the first page
+- `page` (int, deprecated): Same rules as `get_members`
+
+`client.iter_subscriptions(member_id=None, per_page=100)` walks every page lazily.
 
 **Example Usage**:
 ```python
 async with MemberfulClient(api_key="your_key") as client:
     # Get all subscriptions (returns SubscriptionsResponse)
-    all_subs = await client.get_subscriptions(page=1, per_page=100)
+    all_subs = await client.get_subscriptions(per_page=100)
     
     # Get subscriptions for specific member
     member_subs = await client.get_subscriptions(member_id=12345)
@@ -543,22 +558,11 @@ finally:
 ### Batch Operations
 ```python
 async with MemberfulClient(api_key="your_key") as client:
-    # Process multiple pages
-    all_members = []
-    page = 1
-    
-    while True:
-        response = await client.get_members(page=page, per_page=100)
-        members = response.members  # Access typed members list
-        
-        if not members:
-            break
-            
-        all_members.extend(members)
-        page += 1
-        
-        # Respect rate limits
-        await asyncio.sleep(0.1)
+    # Process page by page without holding every member in memory.
+    # iter_members() follows cursors and pauses 0.25s between pages.
+    async for response in client.iter_members(per_page=100):
+        for member in response.members:
+            ...
 ```
 
 ## Data Types and Structures
@@ -633,19 +637,15 @@ if subscription.plan:
 ```python
 from memberful.api.models import MembersResponse, SubscriptionsResponse
 
-# Paginated responses include metadata
-response = MembersResponse(
-    members=[member1, member2, ...],  # List of Member objects
-    total_count=150,
-    current_page=1,
-    per_page=100
-)
+# One page of a cursor-paginated result
+response = await client.get_members(per_page=100)
 
-# Direct access to data and pagination info
 for member in response.members:
     print(member.email)
-    
-print(f"Page {response.current_page} of {response.total_pages}")
+
+# Memberful doesn't report totals, so continue by cursor instead of page number
+if response.has_next_page:
+    response = await client.get_members(per_page=100, after=response.end_cursor)
 ```
 
 ## Limitations and Future Enhancements
@@ -738,23 +738,20 @@ async with MemberfulClient(api_key=key) as client:
 # For manual pagination control (advanced use cases):
 async def manual_pagination_example(client):
     all_members = []
-    page = 1
-    
+    cursor = None
+
     while True:
         # Returns MembersResponse with type safety
-        response = await client.get_members(page=page, per_page=50)
-        
-        if not response.members:  # Access typed members list
-            break
-            
+        response = await client.get_members(per_page=50, after=cursor)
         all_members.extend(response.members)
-        page += 1
-        
-        # Custom rate limiting with pagination metadata
-        print(f"Processed page {response.current_page} of {response.total_pages}")
-        if page % 10 == 0:
-            await asyncio.sleep(1)
-    
+
+        if not response.has_next_page:
+            break
+
+        # Save response.end_cursor somewhere to resume later if you need to
+        cursor = response.end_cursor
+        await asyncio.sleep(0.25)
+
     return all_members
 ```
 

@@ -1,6 +1,8 @@
 """Memberful API client."""
 
 import asyncio
+import warnings
+from collections.abc import AsyncGenerator
 from typing import Any, Optional
 
 import httpx2 as httpx
@@ -160,6 +162,32 @@ query GetAllSubscriptions($first: Int!, $after: String) {
 )
 
 
+# ValueError covers GraphQL errors from _graphql_request (and pydantic's ValidationError, a subclass).
+_RETRYABLE_ERRORS = (httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException, ValueError)
+
+
+def _check_deprecated_page(page: Optional[int], after: Optional[str]) -> None:
+    """Warn about the deprecated `page` argument, and refuse page numbers that can't be honored.
+
+    Memberful's GraphQL API only supports cursors, so page N can't be fetched directly. Returning
+    page 1 labelled as page N (the pre-0.4.0 behavior) silently broke callers' loops.
+    """
+    if page is None:
+        return
+
+    warnings.warn(
+        "`page` is deprecated: Memberful pagination is cursor-based. Pass the previous response's "
+        '`end_cursor` as `after`, or use iter_members()/iter_subscriptions().',
+        DeprecationWarning,
+        stacklevel=3,
+    )
+    if page > 1 and after is None:
+        raise ValueError(
+            f"page={page} requires a cursor: pass the previous page's `end_cursor` as `after`, "
+            'or use iter_members()/iter_subscriptions() to walk every page.'
+        )
+
+
 class MemberfulClientConfig(BaseModel):
     """Configuration for the Memberful client."""
 
@@ -255,121 +283,102 @@ class MemberfulClient:
 
         return data.get('data', {})
 
-    async def get_members(self, page: int = 1, per_page: int = 100) -> MembersResponse:
-        """Get list of members.
+    async def _fetch_members_page(self, per_page: int, after: Optional[str]) -> MembersResponse:
+        """Fetch one page of members starting after the `after` cursor (None means the first page).
 
-        Args:
-            page: Page number (default: 1)
-            per_page: Number of members per page (default: 100)
-
-        Returns:
-            MembersResponse containing members data with pagination info
+        Retries re-send the same cursor; callers only advance their cursor once this returns.
         """
-        # For cursor-based pagination, we'll simulate offset behavior
-        # by fetching pages sequentially until we reach the desired page
-        cursor = None
-        if page > 1:
-            # We'll need to implement a cursor store or fetch pages sequentially
-            # For now, let's use None and handle pagination differently
-            pass
-
-        variables = {'first': per_page, 'after': cursor}
+        variables = {'first': per_page, 'after': after}
 
         async for attempt in stamina.retry_context(
-            on=(httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException, ValueError),
+            on=_RETRYABLE_ERRORS,
             attempts=3,
             timeout=self.request_timeout_in_seconds,
         ):
             with attempt:
                 data = await self._graphql_request(_GET_MEMBERS_QUERY, variables)
-                members_data = data.get('members', {})
+                members_data = data.get('members') or {}
 
-                # Transform GraphQL response to match our expected format
-                members: list[dict[str, Any]] = []
-                if 'edges' in members_data:
-                    for edge in members_data['edges']:
-                        member_node: dict[str, Any] = edge['node']
+                members: list[Member] = []
+                for edge in members_data.get('edges') or []:
+                    member_node: dict[str, Any] = edge['node']
 
-                        # Subscriptions are already in the correct format (no edges needed)
-                        # Just ensure they exist as a list
-                        if 'subscriptions' in member_node and member_node['subscriptions'] is None:
-                            member_node['subscriptions'] = []
+                    # Subscriptions come back as a plain list; normalize null to an empty list
+                    if 'subscriptions' in member_node and member_node['subscriptions'] is None:
+                        member_node['subscriptions'] = []
 
-                        members.append(member_node)
+                    members.append(Member(**member_node))
 
-                # Create response with pagination info
-                # Since totalCount is not available in the GraphQL schema, we'll estimate based on hasNextPage
-                page_info = members_data.get('pageInfo', {})
-                has_next_page = page_info.get('hasNextPage', False)
-                # Estimate total count - this is imperfect but works for pagination
-                total_count: int = len(members) + (per_page if has_next_page else 0)
-                total_pages: int = page + (1 if has_next_page else 0)
-
-                response_data: dict[str, Any] = {
-                    'members': members,
-                    'total_count': total_count,
-                    'total_pages': total_pages,
-                    'current_page': page,
-                    'per_page': per_page,
-                }
-
-                return MembersResponse(**response_data)
+                page_info = members_data.get('pageInfo') or {}
+                return MembersResponse(
+                    members=members,
+                    per_page=per_page,
+                    end_cursor=page_info.get('endCursor'),
+                    has_next_page=bool(page_info.get('hasNextPage', False)),
+                )
         # This line will never be reached due to stamina's retry logic
         raise RuntimeError('Retry exhausted')  # pragma: no cover
 
-    async def get_all_members(self) -> list[Member]:
-        """Get all members by iterating through all pages using cursor-based pagination.
+    async def get_members(
+        self, page: Optional[int] = None, per_page: int = 100, after: Optional[str] = None
+    ) -> MembersResponse:
+        """Get one page of members.
 
-        This method automatically handles pagination by using GraphQL cursors
-        until all members are retrieved. Uses 100 members per page for optimal performance.
+        Memberful's API is cursor-based. Pass the previous response's `end_cursor` as `after` to get
+        the next page, and stop when `has_next_page` is False. To walk every page, use
+        `iter_members()` or `get_all_members()` instead.
+
+        Args:
+            page: Deprecated. Page numbers can't be mapped to cursors, so `page > 1` without `after`
+                raises ValueError. Use `after` instead.
+            per_page: Number of members per page (default: 100)
+            after: Cursor to start after (the previous page's `end_cursor`); None for the first page
+
+        Returns:
+            MembersResponse with the page's members, `end_cursor` and `has_next_page`
+        """
+        _check_deprecated_page(page, after)
+
+        response = await self._fetch_members_page(per_page, after)
+        response.current_page = page
+        return response
+
+    async def iter_members(
+        self, per_page: int = 100, after: Optional[str] = None
+    ) -> AsyncGenerator[MembersResponse, None]:
+        """Yield pages of members lazily, following cursors until the last page.
+
+        Each page is requested only when the caller asks for it, so large accounts don't need to hold
+        every member in memory. Waits 0.25 seconds between pages to be gentle on Memberful's API.
+
+        Args:
+            per_page: Number of members per page (default: 100)
+            after: Cursor to resume after (a previous page's `end_cursor`); None starts at the beginning
+
+        Yields:
+            MembersResponse for each page
+        """
+        cursor = after
+        while True:
+            response = await self._fetch_members_page(per_page, cursor)
+            yield response
+
+            # An empty page or a missing cursor would otherwise loop forever
+            if not response.members or not response.has_next_page or response.end_cursor is None:
+                return
+
+            cursor = response.end_cursor
+            await asyncio.sleep(0.25)
+
+    async def get_all_members(self) -> list[Member]:
+        """Get all members by following cursors through every page (100 members per page).
 
         Returns:
             List containing all Member objects
         """
-        per_page: int = 100
         all_members: list[Member] = []
-        cursor: Optional[str] = None
-        has_next_page = True
-
-        while has_next_page:
-            variables = {'first': per_page, 'after': cursor}
-
-            async for attempt in stamina.retry_context(
-                on=(httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException, ValueError),
-                attempts=3,
-                timeout=self.request_timeout_in_seconds,
-            ):
-                with attempt:
-                    data = await self._graphql_request(_GET_MEMBERS_QUERY, variables)
-                    members_data = data.get('members', {})
-
-                    # Extract members from edges
-                    members: list[Member] = []
-                    if 'edges' in members_data:
-                        for edge in members_data['edges']:
-                            member_node: dict[str, Any] = edge['node']
-
-                            # Ensure subscriptions exist as a list
-                            if 'subscriptions' in member_node and member_node['subscriptions'] is None:
-                                member_node['subscriptions'] = []
-
-                            members.append(Member(**member_node))
-
-                    # Update pagination info
-                    page_info = members_data.get('pageInfo', {})
-                    has_next_page = page_info.get('hasNextPage', False)
-                    cursor = page_info.get('endCursor')
-
-                    # Add members to our collection
-                    all_members.extend(members)
-
-                    # Break if no more members
-                    if not members or not has_next_page:
-                        has_next_page = False
-                        break
-
-            # Small delay to be respectful of API rate limits
-            await asyncio.sleep(0.25)
+        async for response in self.iter_members(per_page=100):
+            all_members.extend(response.members)
 
         return all_members
 
@@ -385,7 +394,7 @@ class MemberfulClient:
         variables = {'id': str(member_id)}
 
         async for attempt in stamina.retry_context(
-            on=(httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException, ValueError),
+            on=_RETRYABLE_ERRORS,
             attempts=3,
             timeout=self.request_timeout_in_seconds,
         ):
@@ -405,36 +414,22 @@ class MemberfulClient:
         # This line will never be reached due to stamina's retry logic
         raise RuntimeError('Retry exhausted')  # pragma: no cover
 
-    async def get_subscriptions(
-        self, member_id: Optional[int] = None, page: int = 1, per_page: int = 100
+    async def _fetch_subscriptions_page(
+        self, member_id: Optional[int], per_page: int, after: Optional[str]
     ) -> SubscriptionsResponse:
-        """Get subscriptions, optionally for a specific member.
+        """Fetch one page of subscriptions (optionally for one member) starting after the `after` cursor.
 
-        Args:
-            member_id: Optional member ID to filter subscriptions
-            page: Page number (default: 1)
-            per_page: Number of subscriptions per page (default: 100)
-
-        Returns:
-            SubscriptionsResponse containing subscriptions data with pagination info
+        Retries re-send the same cursor; callers only advance their cursor once this returns.
         """
-        # For cursor-based pagination
-        cursor = None
-        if page > 1:
-            # For now, we'll implement this as cursor-based without offset simulation
-            pass
-
         if member_id:
-            # Get subscriptions for specific member
             query = _GET_MEMBER_SUBSCRIPTIONS_QUERY
-            variables = {'memberId': str(member_id), 'first': per_page, 'after': cursor}
+            variables: dict[str, Any] = {'memberId': str(member_id), 'first': per_page, 'after': after}
         else:
-            # Get all subscriptions
             query = _GET_ALL_SUBSCRIPTIONS_QUERY
-            variables = {'first': per_page, 'after': cursor}
+            variables = {'first': per_page, 'after': after}
 
         async for attempt in stamina.retry_context(
-            on=(httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException, ValueError),
+            on=_RETRYABLE_ERRORS,
             attempts=3,
             timeout=self.request_timeout_in_seconds,
         ):
@@ -442,45 +437,81 @@ class MemberfulClient:
                 data = await self._graphql_request(query, variables)
 
                 if member_id:
-                    # Extract subscriptions from member query
-                    member_data = data.get('member', {})
-                    subscriptions_data = member_data.get('subscriptions', {})
+                    subscriptions_data = (data.get('member') or {}).get('subscriptions') or {}
                 else:
-                    # Extract subscriptions from direct query
-                    subscriptions_data = data.get('subscriptions', {})
+                    subscriptions_data = data.get('subscriptions') or {}
 
-                # Transform GraphQL response to match our expected format
-                subscriptions: list[dict[str, Any]] = []
-                if 'edges' in subscriptions_data:
-                    for edge in subscriptions_data['edges']:
-                        subscriptions.append(edge['node'])
+                subscriptions = [Subscription(**edge['node']) for edge in subscriptions_data.get('edges') or []]
 
-                # Create response with pagination info
-                # Since totalCount is not available in the GraphQL schema, we'll estimate based on hasNextPage
-                page_info = subscriptions_data.get('pageInfo', {})
-                has_next_page = page_info.get('hasNextPage', False)
-                # Estimate total count - this is imperfect but works for pagination
-                total_count: int = len(subscriptions) + (per_page if has_next_page else 0)
-                total_pages: int = page + (1 if has_next_page else 0)
-
-                response_data: dict[str, Any] = {
-                    'subscriptions': subscriptions,
-                    'total_count': total_count,
-                    'total_pages': total_pages,
-                    'current_page': page,
-                    'per_page': per_page,
-                }
-
-                return SubscriptionsResponse(**response_data)
+                page_info = subscriptions_data.get('pageInfo') or {}
+                return SubscriptionsResponse(
+                    subscriptions=subscriptions,
+                    per_page=per_page,
+                    end_cursor=page_info.get('endCursor'),
+                    has_next_page=bool(page_info.get('hasNextPage', False)),
+                )
         # This line will never be reached due to stamina's retry logic
         raise RuntimeError('Retry exhausted')  # pragma: no cover
 
-    async def get_all_subscriptions(self, member_id: Optional[int] = None) -> list[Subscription]:
-        """Get all subscriptions by iterating through all pages using cursor-based pagination.
+    async def get_subscriptions(
+        self,
+        member_id: Optional[int] = None,
+        page: Optional[int] = None,
+        per_page: int = 100,
+        after: Optional[str] = None,
+    ) -> SubscriptionsResponse:
+        """Get one page of subscriptions, optionally for a specific member.
 
-        This method automatically handles pagination by using GraphQL cursors
-        until all subscriptions are retrieved. Uses 100 subscriptions per page
-        for optimal performance.
+        Memberful's API is cursor-based. Pass the previous response's `end_cursor` as `after` to get
+        the next page, and stop when `has_next_page` is False. To walk every page, use
+        `iter_subscriptions()` or `get_all_subscriptions()` instead.
+
+        Args:
+            member_id: Optional member ID to filter subscriptions
+            page: Deprecated. Page numbers can't be mapped to cursors, so `page > 1` without `after`
+                raises ValueError. Use `after` instead.
+            per_page: Number of subscriptions per page (default: 100)
+            after: Cursor to start after (the previous page's `end_cursor`); None for the first page
+
+        Returns:
+            SubscriptionsResponse with the page's subscriptions, `end_cursor` and `has_next_page`
+        """
+        _check_deprecated_page(page, after)
+
+        response = await self._fetch_subscriptions_page(member_id, per_page, after)
+        response.current_page = page
+        return response
+
+    async def iter_subscriptions(
+        self, member_id: Optional[int] = None, per_page: int = 100, after: Optional[str] = None
+    ) -> AsyncGenerator[SubscriptionsResponse, None]:
+        """Yield pages of subscriptions lazily, following cursors until the last page.
+
+        Each page is requested only when the caller asks for it. Waits 0.25 seconds between pages to
+        be gentle on Memberful's API.
+
+        Args:
+            member_id: Optional member ID to filter subscriptions for a specific member
+            per_page: Number of subscriptions per page (default: 100)
+            after: Cursor to resume after (a previous page's `end_cursor`); None starts at the beginning
+
+        Yields:
+            SubscriptionsResponse for each page
+        """
+        cursor = after
+        while True:
+            response = await self._fetch_subscriptions_page(member_id, per_page, cursor)
+            yield response
+
+            # An empty page or a missing cursor would otherwise loop forever
+            if not response.subscriptions or not response.has_next_page or response.end_cursor is None:
+                return
+
+            cursor = response.end_cursor
+            await asyncio.sleep(0.25)
+
+    async def get_all_subscriptions(self, member_id: Optional[int] = None) -> list[Subscription]:
+        """Get all subscriptions by following cursors through every page (100 subscriptions per page).
 
         Args:
             member_id: Optional member ID to filter subscriptions for specific member
@@ -488,58 +519,9 @@ class MemberfulClient:
         Returns:
             List containing all Subscription objects
         """
-        per_page: int = 100
         all_subscriptions: list[Subscription] = []
-        cursor: Optional[str] = None
-        has_next_page = True
-
-        while has_next_page:
-            if member_id:
-                # Get subscriptions for specific member
-                query = _GET_MEMBER_SUBSCRIPTIONS_QUERY
-                variables = {'memberId': str(member_id), 'first': per_page, 'after': cursor}
-            else:
-                # Get all subscriptions
-                query = _GET_ALL_SUBSCRIPTIONS_QUERY
-                variables = {'first': per_page, 'after': cursor}
-
-            async for attempt in stamina.retry_context(
-                on=(httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException, ValueError),
-                attempts=3,
-                timeout=self.request_timeout_in_seconds,
-            ):
-                with attempt:
-                    data = await self._graphql_request(query, variables)
-
-                    if member_id:
-                        # Extract subscriptions from member query
-                        member_data = data.get('member', {})
-                        subscriptions_data = member_data.get('subscriptions', {})
-                    else:
-                        # Extract subscriptions from direct query
-                        subscriptions_data = data.get('subscriptions', {})
-
-                    # Extract subscriptions from edges
-                    subscriptions: list[Subscription] = []
-                    if 'edges' in subscriptions_data:
-                        for edge in subscriptions_data['edges']:
-                            subscriptions.append(Subscription(**edge['node']))
-
-                    # Update pagination info
-                    page_info = subscriptions_data.get('pageInfo', {})
-                    has_next_page = page_info.get('hasNextPage', False)
-                    cursor = page_info.get('endCursor')
-
-                    # Add subscriptions to our collection
-                    all_subscriptions.extend(subscriptions)
-
-                    # Break if no more subscriptions
-                    if not subscriptions or not has_next_page:
-                        has_next_page = False
-                        break
-
-            # Small delay to be respectful of API rate limits
-            await asyncio.sleep(0.25)
+        async for response in self.iter_subscriptions(member_id=member_id, per_page=100):
+            all_subscriptions.extend(response.subscriptions)
 
         return all_subscriptions
 
