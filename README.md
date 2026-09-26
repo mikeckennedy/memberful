@@ -53,6 +53,17 @@ async with memberful.api.MemberfulClient(
         if member.subscriptions:
             active_subs = [s for s in member.subscriptions if s.active]
             print(f"  Active subscriptions: {len(active_subs)}")
+
+    # Large account? Stream page by page instead of loading everyone at once.
+    # Memberful's API is cursor-based: iter_members() follows the cursors for you.
+    async for page in client.iter_members(per_page=100):
+        for member in page.members:
+            ...
+
+    # Or page manually: pass the previous page's end_cursor as `after`.
+    page = await client.get_members(per_page=100)
+    if page.has_next_page:
+        page = await client.get_members(per_page=100, after=page.end_cursor)
 ```
 
 ### Webhook Handling

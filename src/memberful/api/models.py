@@ -202,9 +202,16 @@ class Product(APIBaseModel):
 
 
 class MembersResponse(APIBaseModel):
-    """Response model for paginated members API."""
+    """One page of members from Memberful's cursor-based GraphQL API.
+
+    To get the next page, pass `end_cursor` back as `after` while `has_next_page` is True.
+    Memberful doesn't report totals, so `total_count` and `total_pages` are always None; they stay
+    on the model for backwards compatibility. `current_page` echoes the deprecated `page` argument.
+    """
 
     members: list[Member] = Field(default_factory=list)
+    end_cursor: Optional[str] = None
+    has_next_page: bool = False
     total_count: Optional[int] = None
     total_pages: Optional[int] = None
     current_page: Optional[int] = None
@@ -212,9 +219,16 @@ class MembersResponse(APIBaseModel):
 
 
 class SubscriptionsResponse(APIBaseModel):
-    """Response model for paginated subscriptions API."""
+    """One page of subscriptions from Memberful's cursor-based GraphQL API.
+
+    To get the next page, pass `end_cursor` back as `after` while `has_next_page` is True.
+    Memberful doesn't report totals, so `total_count` and `total_pages` are always None; they stay
+    on the model for backwards compatibility. `current_page` echoes the deprecated `page` argument.
+    """
 
     subscriptions: list[Subscription] = Field(default_factory=list)
+    end_cursor: Optional[str] = None
+    has_next_page: bool = False
     total_count: Optional[int] = None
     total_pages: Optional[int] = None
     current_page: Optional[int] = None
