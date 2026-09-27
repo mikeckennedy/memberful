@@ -446,6 +446,58 @@ async with MemberfulClient(api_key="your_key") as client:
 
 **Note**: This method is ideal when you need to process all subscriptions (optionally filtered by member) and don't want to manually handle pagination. For large datasets, consider the paginated `get_subscriptions()` method if you need more control over memory usage or processing.
 
+## Subscription Writes
+
+### Set Auto-Renew
+
+Turn a subscription's auto-renew on or off. Turning it off stops future billing with no refund: the subscription stays active until `expires_at`, so the member keeps access (and Memberful-managed benefits such as Discord) until then. It doesn't deactivate or delete the subscription.
+
+**Method**: `client.set_subscription_autorenew(subscription_id, autorenew)`
+
+**Parameters**:
+- `subscription_id` (int): The subscription's ID
+- `autorenew` (bool): `False` to stop renewal at the end of the paid period, `True` to resume it
+
+**Returns**:
+- `Subscription`: The subscription as Memberful reports it after the update, parsed from the mutation's response. `autorenew` is Memberful's stored value, not an echo of the argument.
+
+**Raises**:
+- `MemberfulGraphQLError`: Memberful returned a GraphQL `errors` array. This includes a bad token or an API key without write access (Memberful returns HTTP 200 for these).
+- `MemberfulError`: The response didn't contain the updated subscription.
+- `httpx.HTTPStatusError` / `httpx.RequestError`: HTTP-level failure or timeout.
+
+Failed attempts are retried (3 attempts) like reads, which is safe because setting auto-renew is idempotent.
+
+**GraphQL mutation** (not named in Memberful's public docs; confirmed by introspecting the live schema):
+```graphql
+mutation SetSubscriptionAutorenew($id: ID!, $autorenew: Boolean!) {
+  subscriptionSetAutoRenew(id: $id, autorenew: $autorenew) {
+    subscription {
+      ...SubscriptionFields
+    }
+  }
+}
+```
+
+**Example Usage**:
+```python
+from memberful.api import MemberfulClient, MemberfulError
+
+async with MemberfulClient(api_key="your_key", base_url="https://youraccount.memberful.com") as client:
+    try:
+        subscription = await client.set_subscription_autorenew(123456, False)
+    except MemberfulError as e:
+        print(f"Auto-renew was not changed: {e}")
+        raise
+
+    if subscription.autorenew is not False:
+        raise RuntimeError("Memberful did not turn off auto-renew")
+
+    print(f"Renewal stopped; access continues until {subscription.expires_at}")
+```
+
+**API key permissions**: this is a write. A custom application key limited to read access can't use it. Memberful reports that as a GraphQL error in an HTTP 200 response, so it raises `MemberfulGraphQLError` with Memberful's message (`e.messages`) and the raw error objects (`e.errors`).
+
 ## Error Handling
 
 The Memberful API always returns HTTP 200, with errors included in the response body:
@@ -476,17 +528,19 @@ The Memberful API always returns HTTP 200, with errors included in the response 
 
 ### Client Error Handling
 
-The client automatically raises `httpx.HTTPStatusError` for HTTP errors:
+A GraphQL `errors` array raises `MemberfulGraphQLError`. Because Memberful answers with HTTP 200, that's how an invalid token or a missing permission shows up. A response that lacks the expected data raises `MemberfulError` (for example `get_member()` for an unknown ID, or a write that returns no subscription). Both subclass `ValueError`, so existing `except ValueError` handlers still catch them. An HTTP 4xx/5xx raises `httpx.HTTPStatusError`, and network failures and timeouts raise `httpx.RequestError`. Each method retries up to 3 times before the error reaches you.
 
 ```python
-from httpx import HTTPStatusError
+import httpx2 as httpx
+from memberful.api import MemberfulClient, MemberfulGraphQLError
 
 try:
-    async with MemberfulClient(api_key="invalid_key") as client:
+    async with MemberfulClient(api_key="invalid_key", base_url="https://youraccount.memberful.com") as client:
         members = await client.get_members()
-except HTTPStatusError as e:
+except MemberfulGraphQLError as e:
+    print(f"GraphQL errors: {e.messages}")
+except httpx.HTTPStatusError as e:
     print(f"HTTP Error: {e.response.status_code}")
-    print(f"Response: {e.response.text}")
 ```
 
 ## GraphQL Query Patterns
@@ -651,13 +705,13 @@ if response.has_next_page:
 ## Limitations and Future Enhancements
 
 ### Current Limitations
-- **Limited Operations**: Only supports read operations (queries), no mutations yet
+- **Limited Writes**: The only mutation supported is `set_subscription_autorenew()`
 - **Schema Restrictions**: see "Available Fields" and "Plan Structure" under GraphQL Schema Alignment above for exactly which model fields have no schema equivalent and always come back `None`
 - **Pagination Metadata**: Total count information is estimated based on `hasNextPage` rather than exact counts
 - **No Custom Fields**: Custom field data access not yet implemented
 
 ### Planned Enhancements
-- **Mutation Support**: Create, update, and delete operations
+- **Mutation Support**: More create, update, and delete operations
 - **Advanced Filtering**: Complex query filters and sorting
 - **Custom Fields API**: Access to new custom fields architecture
 - **Direct GraphQL**: Raw GraphQL query support for advanced use cases

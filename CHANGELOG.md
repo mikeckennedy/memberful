@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`MemberfulClient.set_subscription_autorenew(subscription_id, autorenew)`**, the client's first write. It calls Memberful's `subscriptionSetAutoRenew` mutation (confirmed by introspecting the live schema, because Memberful's public docs don't name it). Turning auto-renew off stops future billing with no refund and leaves the subscription active until it expires. The method returns the `Subscription` parsed from Memberful's response, never an echo of the argument. A GraphQL error, an HTTP error, a timeout, or a response without a subscription all raise. Retries match the reads, because the call is idempotent. The API key needs write access.
+- **`MemberfulError` and `MemberfulGraphQLError`**, exported from `memberful.api`. `MemberfulGraphQLError` carries the raw `errors` and their `messages`. Both subclass `ValueError`, so existing `except ValueError` handlers keep working.
+
+### Changed
+- **GraphQL `errors` responses now raise `MemberfulGraphQLError`** instead of a plain `ValueError`. The message (`GraphQL errors: ...`) is unchanged.
+- **`memberful.__version__` is read from the installed package metadata**, so `pyproject.toml` is the only place the version is set. The User-Agent uses it too, so it can no longer drift from the release.
+- **A response with `"data": null` is treated as empty data** instead of returning `None` from the internal request helper.
+
 ## [0.4.0] - 2026-09-26
 
 ### Fixed

@@ -6,7 +6,7 @@ Typed Python client for [Memberful](https://memberful.com): Pydantic models and 
 
 ```
 src/memberful/
-├── __init__.py          # __version__, exposes the api and webhooks submodules only
+├── __init__.py          # __version__ (read from package metadata), exposes the api and webhooks submodules only
 ├── py.typed             # PEP 561 marker (tests/test_packaging.py checks it ships)
 ├── api/
 │   ├── __init__.py      # MemberfulClient (async, httpx2 + stamina retries, GraphQL)
@@ -65,6 +65,6 @@ Memberful retries a failing webhook delivery for up to 24 hours and deletes endp
 ## Releases and git
 
 - Work happens on `dev`; `main` is the release branch.
-- The version lives in two places: `pyproject.toml` and `src/memberful/__init__.py` (`__version__`). Bump both.
+- The version lives only in `pyproject.toml`. `__version__` reads it from the installed package's metadata, so an editable install needs reinstalling (`uv pip install -e ".[dev]"`) before `__version__` shows a bump.
 - Record every user-visible change in `CHANGELOG.md` (Keep a Changelog format) under `[Unreleased]`, or under the new version when releasing.
 - When examples or the README describe the API, keep them in sync with the models. They have drifted before.

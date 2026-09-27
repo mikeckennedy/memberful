@@ -66,6 +66,17 @@ async with memberful.api.MemberfulClient(
         page = await client.get_members(per_page=100, after=page.end_cursor)
 ```
 
+#### Stopping auto-renew
+
+`set_subscription_autorenew()` turns renewal off (or back on) without a refund: the subscription stays active until the end of the paid period. It returns the `Subscription` from Memberful's response, so check `autorenew` on the result rather than assuming it worked.
+
+```python
+subscription = await client.set_subscription_autorenew(subscription_id, False)
+assert subscription.autorenew is False
+```
+
+This is a write, so the API key needs write access. A custom application key limited to read access fails with `memberful.api.MemberfulGraphQLError`. Memberful returns HTTP 200 with a GraphQL `errors` array, and its message is on `e.messages`. `MemberfulGraphQLError` subclasses `MemberfulError`, which subclasses `ValueError`. HTTP failures and timeouts raise `httpx` errors after 3 attempts. The call never fails silently.
+
 ### Webhook Handling
 
 ```python
@@ -121,11 +132,12 @@ Check out the [examples directory](examples/) for ready-to-run code:
 
 - ✅ Fetch members (individual, paginated, or all)
 - ✅ Retrieve subscriptions with full plan details
+- ✅ Stop or resume a subscription's auto-renew (`set_subscription_autorenew`)
 - ✅ Automatic pagination handling
 - ✅ **Smart retry logic** with exponential backoff (3 attempts, handles network errors)
 - ✅ Configurable request timeout
 - ✅ Type-safe responses with Pydantic models
-- ✅ Comprehensive error handling
+- ✅ Typed errors: `MemberfulGraphQLError` / `MemberfulError` (both `ValueError` subclasses)
 
 ### Webhook Features
 
