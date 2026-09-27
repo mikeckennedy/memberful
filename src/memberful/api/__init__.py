@@ -161,6 +161,45 @@ query GetAllSubscriptions($first: Int!, $after: String) {
 """
 )
 
+# Memberful's public docs don't name this mutation. Confirmed by introspecting talkpython.memberful.com
+# (2026-09-27): subscriptionSetAutoRenew(id: ID!, autorenew: Boolean!) returns
+# SubscriptionSetAutorenewPayload { subscription: Subscription! }. It only sets the flag; the separate
+# subscriptionDelete and subscriptionChangeExpirationTime mutations are the ones that end access.
+# Selecting SubscriptionFields means the caller gets Memberful's view of the subscription after the
+# write, not an echo of the argument.
+_SET_SUBSCRIPTION_AUTORENEW_MUTATION = (
+    _GRAPHQL_FRAGMENTS
+    + """
+mutation SetSubscriptionAutorenew($id: ID!, $autorenew: Boolean!) {
+    subscriptionSetAutoRenew(id: $id, autorenew: $autorenew) {
+        subscription {
+            ...SubscriptionFields
+        }
+    }
+}
+"""
+)
+
+
+class MemberfulError(ValueError):
+    """Base class for errors raised by MemberfulClient.
+
+    Subclasses ValueError because callers caught ValueError from the client before these types existed.
+    """
+
+
+class MemberfulGraphQLError(MemberfulError):
+    """Memberful answered with a GraphQL `errors` array (bad token, missing permission, invalid input...).
+
+    Memberful's GraphQL endpoint returns HTTP 200 even for these, so this is how auth and permission
+    failures usually surface. `errors` holds the raw error objects from the response.
+    """
+
+    def __init__(self, errors: list[dict[str, Any]]) -> None:
+        self.errors = errors
+        self.messages: list[str] = [str(error.get('message', error)) for error in errors]
+        super().__init__(f'GraphQL errors: {", ".join(self.messages)}')
+
 
 # ValueError covers GraphQL errors from _graphql_request (and pydantic's ValidationError, a subclass).
 _RETRYABLE_ERRORS = (httpx.HTTPStatusError, httpx.RequestError, httpx.TimeoutException, ValueError)
@@ -264,6 +303,10 @@ class MemberfulClient:
 
         Returns:
             Response data from GraphQL API
+
+        Raises:
+            MemberfulGraphQLError: The response carried a GraphQL `errors` array
+            httpx.HTTPStatusError: Memberful answered with a 4xx/5xx status
         """
         client = await self._ensure_client()
 
@@ -276,12 +319,10 @@ class MemberfulClient:
 
         data = response.json()
 
-        # Check for GraphQL errors
-        if 'errors' in data:
-            error_messages = [error['message'] for error in data['errors']]
-            raise ValueError(f'GraphQL errors: {", ".join(error_messages)}')
+        if data.get('errors'):
+            raise MemberfulGraphQLError(data['errors'])
 
-        return data.get('data', {})
+        return data.get('data') or {}
 
     async def _fetch_members_page(self, per_page: int, after: Optional[str]) -> MembersResponse:
         """Fetch one page of members starting after the `after` cursor (None means the first page).
@@ -525,6 +566,54 @@ class MemberfulClient:
 
         return all_subscriptions
 
+    async def set_subscription_autorenew(self, subscription_id: int, autorenew: bool) -> Subscription:
+        """Turn a subscription's auto-renew on or off. Returns the updated subscription.
+
+        Turning auto-renew off stops future billing without a refund: the subscription stays active
+        until `expires_at`. It doesn't deactivate or delete the subscription.
+
+        The returned Subscription is parsed from Memberful's response to the mutation, so
+        `result.autorenew` reflects what Memberful stored, not the argument passed in. Callers that must
+        be sure the change happened should check it.
+
+        The API key needs write access. Memberful reports a missing permission as a GraphQL error, so it
+        raises MemberfulGraphQLError. Setting auto-renew is idempotent, so failed attempts are retried
+        like reads.
+
+        Args:
+            subscription_id: The subscription's ID
+            autorenew: False to stop renewal at the end of the paid period, True to resume it
+
+        Returns:
+            The Subscription as Memberful reports it after the update
+
+        Raises:
+            MemberfulGraphQLError: Memberful returned a GraphQL `errors` array
+            MemberfulError: The response didn't contain the updated subscription
+            httpx.HTTPStatusError: Memberful answered with a 4xx/5xx status
+            httpx.RequestError: Network failure or timeout
+        """
+        variables = {'id': str(subscription_id), 'autorenew': autorenew}
+
+        async for attempt in stamina.retry_context(
+            on=_RETRYABLE_ERRORS,
+            attempts=3,
+            timeout=self.request_timeout_in_seconds,
+        ):
+            with attempt:
+                data = await self._graphql_request(_SET_SUBSCRIPTION_AUTORENEW_MUTATION, variables)
+                subscription_data = (data.get('subscriptionSetAutoRenew') or {}).get('subscription')
+
+                if not subscription_data:
+                    raise MemberfulError(
+                        f'Memberful returned no subscription when setting autorenew={autorenew} '
+                        f'on subscription {subscription_id}; the change is unconfirmed'
+                    )
+
+                return Subscription(**subscription_data)
+        # This line will never be reached due to stamina's retry logic
+        raise RuntimeError('Retry exhausted')  # pragma: no cover
+
     async def close(self) -> None:
         """Close the HTTP client."""
         if self._client:
@@ -536,6 +625,9 @@ __all__ = [
     # Client
     'MemberfulClient',
     'MemberfulClientConfig',
+    # Errors
+    'MemberfulError',
+    'MemberfulGraphQLError',
     # Models returned by the client
     'Member',
     'MembersResponse',

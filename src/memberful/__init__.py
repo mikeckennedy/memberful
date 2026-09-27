@@ -5,7 +5,13 @@ Use the submodules to access functionality:
 - memberful.webhooks: Webhook handling (parse_payload, validate_signature, event models)
 """
 
-__version__ = '0.4.0'
+from importlib.metadata import PackageNotFoundError, version
+
+# pyproject.toml is the single source of the version; read it from the installed package's metadata.
+try:
+    __version__ = version('memberful')
+except PackageNotFoundError:  # pragma: no cover - running from a source tree that isn't installed
+    __version__ = '0.0.0+unknown'
 __author__ = 'Michael Kennedy'
 
 # Import submodules - users must access functionality through these
