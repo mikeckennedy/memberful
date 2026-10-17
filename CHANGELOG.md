@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-17
+
+### Fixed
+- **`MemberChanges` and `SubscriptionChanges` pairs now accept null on either side.** Memberful sends each changed field as `[old_value, new_value]`, and a field going from empty to set (or set to cleared) has a null on one side. Before this fix, a member linking or unlinking Discord (`"discord_user_id": [null, "123456789"]`) made the whole `member_updated` event fail to parse. Values of the wrong type are still rejected.
+
 ## [0.5.0] - 2026-09-27
 
 ### Added
