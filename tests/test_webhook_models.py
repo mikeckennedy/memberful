@@ -4,6 +4,7 @@ import json
 from typing import Any
 
 import pytest
+from pydantic import ValidationError
 
 from memberful.webhooks import (
     Address,
@@ -11,6 +12,7 @@ from memberful.webhooks import (
     DownloadCreatedEvent,
     Member,
     MemberSignupEvent,
+    MemberUpdatedEvent,
     Product,
     SubscriptionPlan,
     SubscriptionPlanCreatedEvent,
@@ -237,6 +239,56 @@ class TestWebhookEvents:
         assert event.changed is not None
         assert event.changed.plan_id == [42, 43]
         assert event.changed.autorenew == [False, True]
+
+    def _member_updated(self, changed: dict[str, Any]) -> dict[str, Any]:
+        return {
+            'event': 'member_updated',
+            'member': {'id': 123, 'email': 'test@example.com', 'created_at': 1640995200},
+            'changed': changed,
+        }
+
+    def test_member_updated_discord_linked_from_null(self):
+        """A member linking Discord for the first time sends [null, new_id]."""
+        event = MemberUpdatedEvent.model_validate(self._member_updated({'discord_user_id': [None, '123456789']}))
+        assert event.changed is not None
+        assert event.changed.discord_user_id == [None, '123456789']
+
+    def test_member_updated_discord_unlinked_to_null(self):
+        """A member unlinking Discord sends [old_id, null]."""
+        event = MemberUpdatedEvent.model_validate(self._member_updated({'discord_user_id': ['123456789', None]}))
+        assert event.changed is not None
+        assert event.changed.discord_user_id == ['123456789', None]
+
+    def test_member_updated_change_pair_rejects_wrong_type(self):
+        """Pairs admit null, not arbitrary values."""
+        with pytest.raises(ValidationError):
+            MemberUpdatedEvent.model_validate(self._member_updated({'discord_user_id': [{'a': 1}, 'x']}))
+
+    def test_subscription_updated_expires_at_from_null(self):
+        """A subscription gaining an expiry sends [null, new_datetime]."""
+        event_data: dict[str, Any] = {
+            'event': 'subscription.updated',
+            'subscription': {
+                'active': True,
+                'autorenew': True,
+                'created_at': '2023-01-01T00:00:00Z',
+                'expires_at': '2023-02-01T00:00:00Z',
+                'id': 1,
+                'member': {'id': 123, 'email': 'test@example.com', 'created_at': 1640995200},
+                'subscription_plan': {
+                    'id': 43,
+                    'name': 'Premium Plan',
+                    'slug': 'premium-plan',
+                    'interval_count': 1,
+                    'interval_unit': 'month',
+                    'price_cents': 2000,
+                },
+            },
+            'changed': {'expires_at': [None, '2023-02-01T00:00:00Z']},
+        }
+        event = SubscriptionUpdatedEvent.model_validate(event_data)
+        assert event.changed is not None
+        assert event.changed.expires_at == [None, '2023-02-01T00:00:00Z']
 
     def test_event_validation_fails_with_wrong_type(self):
         """Test that event validation fails with wrong event type."""

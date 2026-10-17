@@ -182,28 +182,34 @@ class DeletedMember(WebhookBaseModel):
 
 
 class SubscriptionChanges(WebhookBaseModel):
-    """Changes made to a subscription (for subscription.updated events)."""
+    """Changes made to a subscription (for subscription.updated events).
 
-    plan_id: Optional[list[int]] = None  # [old_value, new_value]
-    expires_at: Optional[list[str]] = None  # [old_value, new_value] - ISO datetime strings
-    autorenew: Optional[list[bool]] = None  # [old_value, new_value]
-    active: Optional[list[bool]] = None
-    price: Optional[list[int]] = None
+    Either side of an [old_value, new_value] pair may be null.
+    """
+
+    plan_id: Optional[list[Optional[int]]] = None  # [old_value, new_value]
+    expires_at: Optional[list[Optional[str]]] = None  # [old_value, new_value] - ISO datetime strings
+    autorenew: Optional[list[Optional[bool]]] = None  # [old_value, new_value]
+    active: Optional[list[Optional[bool]]] = None
+    price: Optional[list[Optional[int]]] = None
 
 
 class MemberChanges(WebhookBaseModel):
-    """Changes made to a member (for member_updated events)."""
+    """Changes made to a member (for member_updated events).
+
+    Either side of an [old_value, new_value] pair may be null.
+    """
 
     # Common member fields that can change - each is [old_value, new_value]
-    email: Optional[list[str]] = None
-    first_name: Optional[list[str]] = None
-    last_name: Optional[list[str]] = None
-    full_name: Optional[list[str]] = None
-    username: Optional[list[str]] = None
-    phone_number: Optional[list[str]] = None
-    discord_user_id: Optional[list[str]] = None
-    stripe_customer_id: Optional[list[str]] = None
-    unrestricted_access: Optional[list[bool]] = None
+    email: Optional[list[Optional[str]]] = None
+    first_name: Optional[list[Optional[str]]] = None
+    last_name: Optional[list[Optional[str]]] = None
+    full_name: Optional[list[Optional[str]]] = None
+    username: Optional[list[Optional[str]]] = None
+    phone_number: Optional[list[Optional[str]]] = None
+    discord_user_id: Optional[list[Optional[str]]] = None
+    stripe_customer_id: Optional[list[Optional[str]]] = None
+    unrestricted_access: Optional[list[Optional[bool]]] = None
     custom_field: Optional[list[Any]] = None  # Custom fields can be any type
 
 
